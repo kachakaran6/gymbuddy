@@ -19,6 +19,16 @@ abstract class NotificationService {
   });
   Future<void> cancelRemindersForDate(String isoDate, List<int> offsetMinutesList);
   Future<void> cancelAllReminders();
+  Future<List<PendingNotificationRequest>> getPendingNotifications();
+  Future<void> scheduleTestNotification(Duration delay);
+  Future<void> reconcileSchedule({
+    required Set<int> activeGymDays,
+    required int gymHour,
+    required int gymMinute,
+    required List<int> offsetMinutesList,
+    required Map<String, AttendanceStatus> attendances,
+    int currentStreak = 0,
+  });
 }
 
 class LocalNotificationService implements NotificationService {
@@ -150,7 +160,19 @@ class LocalNotificationService implements NotificationService {
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
           );
         } catch (e) {
-          debugPrint('Failed to schedule notification $notifId: $e');
+          debugPrint('Failed exact schedule for $notifId: $e, falling back to inexact');
+          try {
+            await _notifications.zonedSchedule(
+              id: notifId,
+              title: title,
+              body: body,
+              scheduledDate: tzTrigger,
+              notificationDetails: notificationDetails,
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            );
+          } catch (e2) {
+            debugPrint('Failed inexact schedule for $notifId: $e2');
+          }
         }
       }
     }
@@ -167,6 +189,73 @@ class LocalNotificationService implements NotificationService {
   @override
   Future<void> cancelAllReminders() async {
     await _notifications.cancelAll();
+  }
+
+  @override
+  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    if (!_isInitialized) await initialize();
+    return await _notifications.pendingNotificationRequests();
+  }
+
+  @override
+  Future<void> scheduleTestNotification(Duration delay) async {
+    if (!_isInitialized) await initialize();
+    final tzTrigger = tz.TZDateTime.now(tz.local).add(delay);
+    
+    const androidDetails = AndroidNotificationDetails(
+      'gym_reminders',
+      'Gym Reminders',
+      channelDescription: 'Notifications to help you show up at the gym',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    const notificationDetails = NotificationDetails(android: androidDetails);
+
+    try {
+      await _notifications.zonedSchedule(
+        id: 999999, // Special ID for test
+        title: 'Test Reminder',
+        body: 'This is a test notification. Your reminders are working!',
+        scheduledDate: tzTrigger,
+        notificationDetails: notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } catch (e) {
+      debugPrint('Failed exact schedule for test: $e, falling back to inexact');
+      await _notifications.zonedSchedule(
+        id: 999999,
+        title: 'Test Reminder',
+        body: 'This is a test notification. Your reminders are working!',
+        scheduledDate: tzTrigger,
+        notificationDetails: notificationDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    }
+  }
+
+  @override
+  Future<void> reconcileSchedule({
+    required Set<int> activeGymDays,
+    required int gymHour,
+    required int gymMinute,
+    required List<int> offsetMinutesList,
+    required Map<String, AttendanceStatus> attendances,
+    int currentStreak = 0,
+  }) async {
+    if (!_isInitialized) await initialize();
+    
+    // Simplest reconciliation: cancel all and rebuild from current state
+    // This ensures no ghost notifications or duplicates.
+    await cancelAllReminders();
+    
+    await scheduleRemindersForSchedule(
+      activeGymDays: activeGymDays,
+      gymHour: gymHour,
+      gymMinute: gymMinute,
+      offsetMinutesList: offsetMinutesList,
+      attendances: attendances,
+      currentStreak: currentStreak,
+    );
   }
 }
 
@@ -199,5 +288,27 @@ class FakeNotificationService implements NotificationService {
   @override
   Future<void> cancelAllReminders() async {
     scheduledLogs.add('cancelled_all');
+  }
+
+  @override
+  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    return [];
+  }
+
+  @override
+  Future<void> scheduleTestNotification(Duration delay) async {
+    scheduledLogs.add('test_notification_${delay.inSeconds}s');
+  }
+
+  @override
+  Future<void> reconcileSchedule({
+    required Set<int> activeGymDays,
+    required int gymHour,
+    required int gymMinute,
+    required List<int> offsetMinutesList,
+    required Map<String, AttendanceStatus> attendances,
+    int currentStreak = 0,
+  }) async {
+    scheduledLogs.add('reconciled');
   }
 }

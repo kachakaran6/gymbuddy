@@ -219,33 +219,92 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
     ThemeData theme,
     WorkoutSessionModel workout,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(
-            color: theme.dividerColor,
-            width: 1,
+    final timerState = ref.watch(restTimerProvider);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (timerState.isRunning) _buildRestTimer(context, ref, timerState, theme),
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.base),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: theme.dividerColor,
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              // Discard — ghost destructive, visually lower priority
+              TextButton.icon(
+                icon: const Icon(Icons.delete_outline, size: 16),
+                label: const Text('Discard'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red.shade400,
+                ),
+                onPressed: () => _confirmDiscard(context, ref),
+              ),
+              const Spacer(),
+              // Primary add exercise
+              FilledButton.icon(
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Exercise'),
+                onPressed: () => _addExercise(context),
+              ),
+            ],
           ),
         ),
-      ),
+      ],
+    );
+  }
+
+  Widget _buildRestTimer(BuildContext context, WidgetRef ref, RestTimerState state, ThemeData theme) {
+    final now = DateTime.now();
+    final elapsed = now.difference(state.startTime!).inSeconds;
+    final remaining = (state.initialDuration - elapsed).clamp(0, 9999);
+    final isDone = remaining == 0;
+
+    return Container(
+      color: isDone ? Colors.green.withValues(alpha: 0.2) : theme.colorScheme.primary.withValues(alpha: 0.1),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
       child: Row(
         children: [
-          // Discard — ghost destructive, visually lower priority
-          TextButton.icon(
-            icon: const Icon(Icons.delete_outline, size: 16),
-            label: const Text('Discard'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red.shade400,
+          Icon(Icons.timer_outlined, color: isDone ? Colors.green : theme.colorScheme.primary),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isDone ? 'Rest Complete!' : 'Resting...',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: isDone ? Colors.green : theme.colorScheme.primary,
+                  ),
+                ),
+                Text(
+                  isDone ? '0:00' : '${remaining ~/ 60}:${(remaining % 60).toString().padLeft(2, '0')}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-            onPressed: () => _confirmDiscard(context, ref),
           ),
-          const Spacer(),
-          // Primary add exercise
-          FilledButton.icon(
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add Exercise'),
-            onPressed: () => _addExercise(context),
+          IconButton(
+            icon: const Icon(Icons.add, size: 20),
+            onPressed: () {
+              ref.read(restTimerProvider.notifier).startTimer(state.initialDuration + 30);
+            },
+            tooltip: '+30s',
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 20),
+            onPressed: () {
+              ref.read(restTimerProvider.notifier).stopTimer();
+            },
           ),
         ],
       ),
@@ -308,7 +367,6 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
         border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Exercise Header
           Padding(
@@ -330,13 +388,33 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      if (category.isNotEmpty)
                         Text(
                           category,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final prevAsync = ref.watch(previousPerformanceProvider(ExercisePerformanceParams(workoutEx.exerciseId, weightUnit)));
+                          return prevAsync.when(
+                            data: (perf) => perf != null
+                                ? Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Text(
+                                      'Last: $perf',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: Colors.orange,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, _) => const SizedBox.shrink(),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -484,8 +562,9 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
           ),
           // Set type dropdown
           SizedBox(
-            width: 68,
+            width: 84,
             child: DropdownButton<SetType>(
+              isExpanded: true,
               isDense: true,
               value: setModel.setType,
               underline: const SizedBox(),
@@ -495,6 +574,7 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
                   child: Text(
                     st.name[0].toUpperCase() + st.name.substring(1),
                     style: const TextStyle(fontSize: 12),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 );
               }).toList(),
@@ -578,6 +658,22 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
                     .deleteSet(setModel.id);
               },
             ),
+          ),
+          // Complete Set Checkbox
+          Checkbox(
+            value: setModel.completedAt != null,
+            activeColor: Colors.green,
+            onChanged: (val) {
+              final isCompleted = val == true;
+              ref.read(activeWorkoutProvider.notifier).updateSet(
+                setModel.copyWith(
+                  completedAt: isCompleted ? DateTime.now() : null,
+                ),
+              );
+              if (isCompleted) {
+                ref.read(restTimerProvider.notifier).startTimer(60);
+              }
+            },
           ),
         ],
       ),

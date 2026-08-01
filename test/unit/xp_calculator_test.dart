@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gymbuddy/domain/models/models.dart';
 import 'package:gymbuddy/domain/services/xp_calculator.dart';
 
 void main() {

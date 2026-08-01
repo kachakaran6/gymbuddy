@@ -18,7 +18,7 @@ class AppTheme {
   static ThemeData lightTheme(String accentKey) {
     final accent = getAccentColor(accentKey, isDark: false);
     final onAccent = getOnAccentColor(accent);
-    final accentSubtle = accent.withOpacity(0.12);
+    final accentSubtle = accent.withValues(alpha: 0.12);
 
     const background = AppColors.lightBg;
     const surface = AppColors.lightSurface;
@@ -60,7 +60,6 @@ class AppTheme {
       scaffoldBackgroundColor: background,
       canvasColor: background,
       cardColor: surface,
-      dialogBackgroundColor: surface,
       dividerColor: border,
       appBarTheme: const AppBarTheme(
         centerTitle: true,
@@ -84,7 +83,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
         elevation: 0,
-        indicatorColor: accentSubtle,
+        indicatorColor: Colors.transparent,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return IconThemeData(color: accent);
@@ -251,7 +250,7 @@ class AppTheme {
   static ThemeData darkTheme(String accentKey) {
     final accent = getAccentColor(accentKey, isDark: true);
     final onAccent = getOnAccentColor(accent);
-    final accentSubtle = accent.withOpacity(0.16);
+    final accentSubtle = accent.withValues(alpha: 0.16);
 
     const background = AppColors.darkBg;
     const surface = AppColors.darkSurface;
@@ -293,7 +292,6 @@ class AppTheme {
       scaffoldBackgroundColor: background,
       canvasColor: background,
       cardColor: surfaceContainer,
-      dialogBackgroundColor: surfaceContainerHigh,
       dividerColor: border,
       appBarTheme: const AppBarTheme(
         centerTitle: true,
@@ -317,7 +315,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
         elevation: 0,
-        indicatorColor: accentSubtle,
+        indicatorColor: Colors.transparent,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return IconThemeData(color: accent);

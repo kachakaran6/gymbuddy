@@ -73,6 +73,7 @@ class ExerciseDefinitions extends Table {
   TextColumn get name => text()();
   TextColumn get category => text()(); // Chest, Back, Legs, Arms, Shoulders, Cardio, Abs
   BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
+  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
@@ -119,7 +120,7 @@ class AchievementAwards extends Table {
 // 10. XP Events Table
 class XpEvents extends Table {
   TextColumn get id => text()();
-  TextColumn get awardKey => text().customConstraint('UNIQUE')();
+  TextColumn get awardKey => text().customConstraint('UNIQUE NOT NULL')();
   TextColumn get sourceType => text()();
   IntColumn get amount => integer()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -141,6 +142,27 @@ class NotificationScheduleLogs extends Table {
   Set<Column> get primaryKey => {notificationId};
 }
 
+// 12. Workout Templates Table
+class WorkoutTemplates extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+// 13. Workout Template Exercises Table
+class WorkoutTemplateExercises extends Table {
+  TextColumn get id => text()();
+  TextColumn get templateId => text().references(WorkoutTemplates, #id, onDelete: KeyAction.cascade)();
+  TextColumn get exerciseId => text().references(ExerciseDefinitions, #id)();
+  IntColumn get sortOrder => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(tables: [
   UserPreferences,
   GymSchedules,
@@ -153,14 +175,50 @@ class NotificationScheduleLogs extends Table {
   AchievementAwards,
   XpEvents,
   NotificationScheduleLogs,
+  WorkoutTemplates,
+  WorkoutTemplateExercises,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 4;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'gymbuddy_db');
+  }
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) async {
+        await m.createAll();
+      },
+      onUpgrade: (Migrator m, int from, int to) async {
+        if (from < 2) {
+          await m.addColumn(exerciseDefinitions, exerciseDefinitions.isFavorite);
+        }
+        if (from < 4) {
+          await m.createTable(workoutTemplates);
+          await m.createTable(workoutTemplateExercises);
+        }
+      },
+      beforeOpen: (details) async {
+        // Enable foreign keys for cascade deletes
+        await customStatement('PRAGMA foreign_keys = ON;');
+        
+        // Batch 8: Automated Data Verification
+        // Clean up any dangling sets or exercises that might exist from before FK enforcement
+        await customStatement('''
+          DELETE FROM workout_sets 
+          WHERE workout_exercise_id NOT IN (SELECT id FROM workout_exercises)
+        ''');
+        
+        await customStatement('''
+          DELETE FROM workout_exercises 
+          WHERE workout_id NOT IN (SELECT id FROM workouts)
+        ''');
+      },
+    );
   }
 }

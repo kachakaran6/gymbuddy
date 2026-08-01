@@ -1,20 +1,18 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:file_picker/file_picker.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/date_utils.dart';
 import '../../domain/models/models.dart';
-import '../../data/repositories/repositories.dart';
 import '../../widgets/gym_widgets.dart';
+import 'notification_diagnostics_screen.dart';
+import 'storage_diagnostics_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -166,6 +164,61 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             .read(gymScheduleProvider.notifier)
                             .updateSchedules(updated);
                       }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // ── Reminders ───────────────────────────────────
+            const GymSectionHeader(title: 'Reminders'),
+            _buildCard(
+              isDark: isDark,
+              cardBg: cardBg,
+              borderColor: borderColor,
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.base,
+                      vertical: AppSpacing.xs,
+                    ),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: Icon(
+                        Icons.notifications_active_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 18,
+                      ),
+                    ),
+                    title: const Text(
+                      'Test & Diagnostics',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      'Check notification health',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationDiagnosticsScreen(),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -341,8 +394,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // ── Data Management ──────────────────────────────
-            const GymSectionHeader(title: 'Data Management'),
+            // ── Storage & Data ──────────────────────────────
+            const GymSectionHeader(title: 'Storage & Data'),
             _buildCard(
               isDark: isDark,
               cardBg: cardBg,
@@ -350,21 +403,67 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 children: [
                   GymSettingsRow(
-                    icon: Icons.upload_rounded,
-                    title: 'Export Backup',
-                    subtitle: 'Save attendance, workouts & PRs as JSON',
-                    onTap: () async {
-                      final jsonStr = await repo.exportDataJson();
-                      await Share.share(jsonStr,
-                          subject: 'GymBuddy_Backup.json');
+                    icon: Icons.storage_rounded,
+                    title: 'Storage & Diagnostics',
+                    subtitle: 'Database size and offline data health',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const StorageDiagnosticsScreen(),
+                        ),
+                      );
                     },
                   ),
                   Divider(height: 1, thickness: 1, color: borderColor),
                   GymSettingsRow(
-                    icon: Icons.download_rounded,
-                    title: 'Import Backup',
-                    subtitle: 'Restore previously exported data',
-                    onTap: () => _handleImportData(context, repo),
+                    icon: Icons.backup_rounded,
+                    title: 'Backup Now',
+                    subtitle: 'Create a local JSON snapshot instantly',
+                    onTap: () async {
+                      try {
+                        await ref.read(backupServiceProvider).createAutomaticBackup();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Backup created successfully.')),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Backup failed: $e')),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                  Divider(height: 1, thickness: 1, color: borderColor),
+                  GymSettingsRow(
+                    icon: Icons.restore_rounded,
+                    title: 'Restore Backup',
+                    subtitle: 'Recover from snapshots or import JSON file',
+                    onTap: () => _showRestoreOptions(context, ref),
+                  ),
+                  Divider(height: 1, thickness: 1, color: borderColor),
+                  GymSettingsRow(
+                    icon: Icons.upload_rounded,
+                    title: 'Export Latest Backup',
+                    subtitle: 'Save latest snapshot to external storage',
+                    onTap: () async {
+                      final backupService = ref.read(backupServiceProvider);
+                      final snapshots = await backupService.getRecoverySnapshots();
+                      if (snapshots.isEmpty) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('No backups available to export.')),
+                          );
+                        }
+                        return;
+                      }
+                      final file = snapshots.first;
+                      final jsonStr = await file.readAsString();
+                      await Share.share(jsonStr, subject: 'GymBuddy_Backup.json');
+                    },
                   ),
                 ],
               ),
@@ -412,20 +511,79 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<void> _handleImportData(BuildContext context, GymRepository repo) async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-    );
-    if (result == null || result.files.single.path == null) return;
+  Future<void> _showRestoreOptions(BuildContext context, WidgetRef ref) async {
+    final backupService = ref.read(backupServiceProvider);
+    final snapshots = await backupService.getRecoverySnapshots();
+
     if (!context.mounted) return;
 
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Restore Data',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.file_upload),
+                title: const Text('Import from File'),
+                subtitle: const Text('Choose a JSON backup file'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _handleImportData(context, ref);
+                },
+              ),
+              const Divider(),
+              if (snapshots.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text('No local snapshots available.'),
+                )
+              else
+                ...snapshots.take(3).map((file) {
+                  final modified = file.lastModifiedSync();
+                  final size = (file.lengthSync() / 1024).toStringAsFixed(1);
+                  return ListTile(
+                    leading: const Icon(Icons.restore),
+                    title: Text('Snapshot from ${modified.year}-${modified.month.toString().padLeft(2, '0')}-${modified.day.toString().padLeft(2, '0')}'),
+                    subtitle: Text('${modified.hour.toString().padLeft(2, '0')}:${modified.minute.toString().padLeft(2, '0')} • ${size}KB'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _restoreFromFile(context, ref, file);
+                    },
+                  );
+                }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleImportData(BuildContext context, WidgetRef ref) async {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('File picking not implemented. Please use external tools to restore data.')),
+    );
+  }
+
+  Future<void> _restoreFromFile(BuildContext context, WidgetRef ref, File file) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Restore Backup?'),
         content: const Text(
-          'Restoring a backup will replace current attendance and workout history. This cannot be undone.',
+          'Restoring a backup will replace current attendance, schedules, and workout history. This cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -442,26 +600,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     if (confirm != true) return;
-
-    final file = result.files.single;
-    String content = '';
-    if (file.bytes != null) {
-      content = utf8.decode(file.bytes!);
-    } else if (file.path != null) {
-      content = await File(file.path!).readAsString();
-    }
-
-    final success = await repo.importDataJson(content);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'Backup restored successfully!'
-              : 'Import failed — invalid file structure.',
-        ),
-      ),
-    );
+
+    try {
+      final content = await file.readAsString();
+      final backupService = ref.read(backupServiceProvider);
+      await backupService.restoreBackup(content);
+      
+      // Reload providers
+      ref.invalidate(attendanceProvider);
+      ref.invalidate(gymScheduleProvider);
+      ref.invalidate(userPreferencesProvider);
+      ref.invalidate(activeWorkoutProvider);
+      ref.invalidate(totalXpProvider);
+      
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Backup restored successfully!')),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Import failed: $e')),
+      );
+    }
   }
 }
 

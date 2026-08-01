@@ -90,7 +90,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 Text('Personal Records Broken!', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ...newPRs.map((pr) => Card(
-                      color: Colors.amber.withOpacity(0.15),
+                      color: Colors.amber.withValues(alpha: 0.15),
                       child: ListTile(
                         leading: const Icon(Icons.star, color: Colors.amber),
                         title: Text(pr.exerciseName, style: const TextStyle(fontWeight: FontWeight.bold)),

@@ -30,7 +30,7 @@ class AppAccentColors {
 
   static AppAccentColor fromLightColor(Color color) {
     return all.firstWhere(
-      (c) => c.lightColor.value == color.value,
+      (c) => c.lightColor.toARGB32() == color.toARGB32(),
       orElse: () => blue,
     );
   }
@@ -48,7 +48,7 @@ class AppAccentColors {
           int.parse(hex.replaceFirst('#', ''), radix: 16) | 0xFF000000;
 
       return all.firstWhere(
-        (c) => c.lightColor.value == colorValue || c.darkColor.value == colorValue,
+        (c) => c.lightColor.toARGB32() == colorValue || c.darkColor.toARGB32() == colorValue,
         orElse: () => blue,
       );
     } catch (_) {
