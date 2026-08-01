@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/date_utils.dart';
 import '../../domain/models/models.dart';
 
@@ -358,16 +359,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 12),
           Wrap(
             spacing: 12,
-            children: AppConstants.accentColors.entries.map((entry) {
-              final isSelected = _selectedAccent == entry.key;
-              final onColor = AppTheme.getOnAccentColor(entry.value);
+            children: AppAccentColors.all.map((accent) {
+              final isSelected = _selectedAccent.toLowerCase() == accent.name.toLowerCase();
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              final color = AppTheme.getAccentColor(accent.name, isDark: isDark);
+              final onColor = AppTheme.getOnAccentColor(color);
               return GestureDetector(
                 onTap: () {
-                  setState(() => _selectedAccent = entry.key);
-                  ref.read(userPreferencesProvider.notifier).setAccentKey(entry.key);
+                  setState(() => _selectedAccent = accent.name.toLowerCase());
+                  ref.read(userPreferencesProvider.notifier).setAccentKey(accent.name.toLowerCase());
                 },
                 child: CircleAvatar(
-                  backgroundColor: entry.value,
+                  backgroundColor: color,
                   radius: 20,
                   child: isSelected ? Icon(Icons.check, color: onColor) : null,
                 ),

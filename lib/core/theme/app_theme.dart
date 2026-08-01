@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
+import 'app_colors.dart';
 
 class AppTheme {
-  /// Returns the selected [Color] from the accentKey catalog or defaults to Indigo.
-  static Color getAccentColor(String accentKey) {
-    return AppConstants.accentColors[accentKey.toLowerCase()] ?? Colors.indigo;
+  /// Returns the selected [Color] from the accentKey catalog or defaults to blue.
+  static Color getAccentColor(String accentKey, {bool isDark = false}) {
+    final accent = AppAccentColors.fromName(accentKey);
+    return isDark ? accent.darkColor : accent.lightColor;
   }
 
   /// Calculates readable contrast text/icon color for elements placed on top of [accentColor].
@@ -14,18 +16,18 @@ class AppTheme {
 
   /// Build Light Theme with strict neutral white/light-gray foundation and dynamic accent highlights.
   static ThemeData lightTheme(String accentKey) {
-    final accent = getAccentColor(accentKey);
+    final accent = getAccentColor(accentKey, isDark: false);
     final onAccent = getOnAccentColor(accent);
     final accentSubtle = accent.withOpacity(0.12);
 
-    const background = Color(0xFFFAFAFA);
-    const surface = Color(0xFFFFFFFF);
-    const surfaceContainer = Color(0xFFF5F5F5);
-    const surfaceContainerHigh = Color(0xFFEFEFEF);
-    const border = Color(0xFFE5E5E5);
-    const textPrimary = Color(0xFF111111);
-    const textSecondary = Color(0xFF666666);
-    const textMuted = Color(0xFF999999);
+    const background = AppColors.lightBg;
+    const surface = AppColors.lightSurface;
+    const surfaceContainer = AppColors.lightSurfaceElevated;
+    const surfaceContainerHigh = AppColors.lightBorder;
+    const border = AppColors.lightBorder;
+    const textPrimary = AppColors.lightTextPrimary;
+    const textSecondary = AppColors.lightTextSecondary;
+    const textMuted = AppColors.lightTextDisabled;
 
     final colorScheme = ColorScheme.light(
       primary: accent,
@@ -247,18 +249,18 @@ class AppTheme {
 
   /// Build Dark Theme with strict neutral black/charcoal foundation and dynamic accent highlights.
   static ThemeData darkTheme(String accentKey) {
-    final accent = getAccentColor(accentKey);
+    final accent = getAccentColor(accentKey, isDark: true);
     final onAccent = getOnAccentColor(accent);
     final accentSubtle = accent.withOpacity(0.16);
 
-    const background = Color(0xFF080808);
-    const surface = Color(0xFF101010);
-    const surfaceContainer = Color(0xFF161616);
-    const surfaceContainerHigh = Color(0xFF1C1C1C);
-    const border = Color(0xFF262626);
-    const textPrimary = Color(0xFFFFFFFF);
-    const textSecondary = Color(0xFFA1A1AA);
-    const textMuted = Color(0xFF52525B);
+    const background = AppColors.darkBg;
+    const surface = AppColors.darkSurface;
+    const surfaceContainer = AppColors.darkSurfaceElevated;
+    const surfaceContainerHigh = AppColors.darkSurfaceHover;
+    const border = AppColors.darkBorder;
+    const textPrimary = AppColors.darkTextPrimary;
+    const textSecondary = AppColors.darkTextSecondary;
+    const textMuted = AppColors.darkTextDisabled;
 
     final colorScheme = ColorScheme.dark(
       primary: accent,

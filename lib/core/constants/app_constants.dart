@@ -27,16 +27,6 @@ class AppConstants {
     return (totalXp / 100).floor() + 1;
   }
 
-  // Accent Colors Catalog
-  static const Map<String, Color> accentColors = {
-    'indigo': Colors.indigo,
-    'blue': Colors.blue,
-    'teal': Colors.teal,
-    'green': Colors.green,
-    'orange': Colors.orange,
-    'pink': Colors.pink,
-    'purple': Colors.deepPurple,
-  };
 
   // Motivational Quotes
   static const List<String> motivationQuotes = [

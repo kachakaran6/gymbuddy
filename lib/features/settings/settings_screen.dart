@@ -7,7 +7,9 @@ import 'package:file_picker/file_picker.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/date_utils.dart';
 import '../../domain/models/models.dart';
@@ -286,37 +288,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const SizedBox(height: AppSpacing.md),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: AppConstants.accentColors.entries.map((entry) {
-                            final isSelected = prefs.accentKey == entry.key;
-                            final onColor =
-                                AppTheme.getOnAccentColor(entry.value);
+                          children: AppAccentColors.all.map((accent) {
+                            final isSelected = prefs.accentKey.toLowerCase() == accent.name.toLowerCase();
+                            final color = AppTheme.getAccentColor(accent.name, isDark: isDark);
+                            final onColor = AppTheme.getOnAccentColor(color);
                             return Semantics(
-                              label: entry.key,
+                              label: accent.name,
                               selected: isSelected,
                               child: GestureDetector(
                                 onTap: () {
                                   ref
                                       .read(userPreferencesProvider.notifier)
-                                      .setAccentKey(entry.key);
+                                      .setAccentKey(accent.name.toLowerCase());
                                 },
-                                child: AnimatedContainer(
-                                  duration: AppDurations.fast,
-                                  width: 34,
-                                  height: 34,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
                                   decoration: BoxDecoration(
-                                    color: entry.value,
                                     shape: BoxShape.circle,
+                                    color: color,
                                     border: isSelected
                                         ? Border.all(
-                                            color: entry.value
-                                                .withValues(alpha: 0.4),
+                                            color: color.withValues(alpha: 0.4),
                                             width: 3,
                                           )
                                         : null,
                                     boxShadow: isSelected
                                         ? [
                                             BoxShadow(
-                                              color: entry.value
+                                              color: color
                                                   .withValues(alpha: 0.4),
                                               blurRadius: 8,
                                               spreadRadius: 1,
