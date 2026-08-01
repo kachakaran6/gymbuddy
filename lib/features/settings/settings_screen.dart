@@ -402,11 +402,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required Color borderColor,
     required Widget child,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
+    return Material(
+      color: cardBg,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: borderColor, width: 1),
+        side: BorderSide(color: borderColor, width: 1),
       ),
       child: child,
     );

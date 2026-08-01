@@ -155,19 +155,20 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
           centerTitle: true,
           actions: [
             Padding(
-              padding:
-                  const EdgeInsets.only(right: AppSpacing.md),
-              child: FilledButton(
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  _finishWorkout(workout, prefs.weightUnit);
-                },
-                style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
-                child: const Text(
-                  'Finish',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: Center(
+                child: FilledButton(
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    _finishWorkout(workout, prefs.weightUnit);
+                  },
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: const Text(
+                    'Finish',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
             ),
@@ -175,6 +176,7 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
         ),
         body: SafeArea(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
                 child: workout.exercises.isEmpty
