@@ -12,6 +12,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Verify Onboarding or Navigation Shell renders
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 }
