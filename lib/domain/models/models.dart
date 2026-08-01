@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 
 enum AttendanceStatus {
   planned,
@@ -143,13 +142,15 @@ class ExerciseModel {
   final String name;
   final String category; // Chest, Back, Legs, Arms, Shoulders, Cardio, Abs
   final bool isCustom;
+  final bool isFavorite;
   final DateTime createdAt;
 
   const ExerciseModel({
     required this.id,
     required this.name,
     required this.category,
-    required this.isCustom,
+    this.isCustom = false,
+    this.isFavorite = false,
     required this.createdAt,
   });
 }
@@ -282,6 +283,34 @@ class PersonalRecordModel {
     required this.value,
     required this.displayValue,
     required this.achievedAt,
+  });
+}
+
+class WorkoutTemplateExerciseModel {
+  final String id;
+  final String templateId;
+  final String exerciseId;
+  final ExerciseModel exercise;
+
+  const WorkoutTemplateExerciseModel({
+    required this.id,
+    required this.templateId,
+    required this.exerciseId,
+    required this.exercise,
+  });
+}
+
+class WorkoutTemplateModel {
+  final String id;
+  final String name;
+  final DateTime createdAt;
+  final List<WorkoutTemplateExerciseModel> exercises;
+
+  const WorkoutTemplateModel({
+    required this.id,
+    required this.name,
+    required this.createdAt,
+    this.exercises = const [],
   });
 }
 

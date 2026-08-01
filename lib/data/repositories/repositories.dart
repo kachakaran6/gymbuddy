@@ -281,16 +281,74 @@ class GymRepository {
   // -------------------------------------------------------------
 
   Future<List<ExerciseModel>> getExerciseDefinitions() async {
-    final list = await (db.select(db.exerciseDefinitions)..orderBy([(t) => OrderingTerm.asc(t.name)])).get();
-    return list
-        .map((e) => ExerciseModel(
-              id: e.id,
-              name: e.name,
-              category: e.category,
-              isCustom: e.isCustom,
-              createdAt: e.createdAt,
+    final defs = await (db.select(db.exerciseDefinitions)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.isFavorite.cast<int>(), mode: OrderingMode.desc),
+            (t) => OrderingTerm(expression: t.name),
+          ]))
+        .get();
+    return defs
+        .map((d) => ExerciseModel(
+              id: d.id,
+              name: d.name,
+              category: d.category,
+              isCustom: d.isCustom,
+              isFavorite: d.isFavorite,
+              createdAt: d.createdAt,
             ))
         .toList();
+  }
+
+  Future<void> toggleExerciseFavorite(String exerciseId, bool isFavorite) async {
+    await (db.update(db.exerciseDefinitions)..where((t) => t.id.equals(exerciseId)))
+        .write(ExerciseDefinitionsCompanion(isFavorite: Value(isFavorite)));
+  }
+
+  Future<void> deleteCustomExercise(String exerciseId) async {
+    // Only delete if it's custom. We rely on cascade to delete related workout_exercises.
+    await (db.delete(db.exerciseDefinitions)
+          ..where((t) => t.id.equals(exerciseId) & t.isCustom.equals(true)))
+        .go();
+  }
+
+  Future<String?> getPreviousPerformance(String exerciseId, String weightUnit) async {
+    // A simplified previous performance: get the most recent completed workout with this exercise
+    final query = db.select(db.workoutExercises).join([
+      innerJoin(db.workouts, db.workouts.id.equalsExp(db.workoutExercises.workoutId)),
+      innerJoin(db.workoutSets, db.workoutSets.workoutExerciseId.equalsExp(db.workoutExercises.id)),
+    ])
+      ..where(db.workoutExercises.exerciseId.equals(exerciseId))
+      ..where(db.workouts.status.equals('completed'))
+      ..orderBy([OrderingTerm.desc(db.workouts.endedAt)]);
+
+    final rows = await query.get();
+    if (rows.isEmpty) return null;
+
+    // Just aggregate from the first found workout
+    final workoutId = rows.first.readTable(db.workouts).id;
+    
+    // Group all sets for this workout/exercise
+    final workoutRows = rows.where((r) => r.readTable(db.workouts).id == workoutId).toList();
+    
+    double maxWeight = 0;
+    int totalReps = 0;
+    
+    for (final row in workoutRows) {
+      final setModel = row.readTable(db.workoutSets);
+      if (setModel.weightKg != null && setModel.weightKg! > maxWeight) {
+        maxWeight = setModel.weightKg!;
+      }
+      if (setModel.reps != null) {
+        totalReps += setModel.reps!;
+      }
+    }
+
+    if (maxWeight > 0) {
+      return '$totalReps reps @ $maxWeight $weightUnit';
+    } else if (totalReps > 0) {
+      return '$totalReps reps';
+    }
+    return null;
   }
 
   Future<ExerciseModel> createCustomExercise(String name, String category) async {
@@ -840,5 +898,77 @@ class GymRepository {
       debugPrint('Import error: $e');
       return false;
     }
+  }
+
+  // -------------------------------------------------------------
+  // TEMPLATES
+  // -------------------------------------------------------------
+
+  Future<List<WorkoutTemplateModel>> getTemplates() async {
+    final templates = await db.select(db.workoutTemplates).get();
+    final List<WorkoutTemplateModel> models = [];
+    
+    for (final t in templates) {
+      final tExercises = await (db.select(db.workoutTemplateExercises)
+            ..where((e) => e.templateId.equals(t.id))
+            ..orderBy([(e) => OrderingTerm(expression: e.sortOrder)]))
+          .get();
+
+      final List<WorkoutTemplateExerciseModel> exerciseModels = [];
+      for (final e in tExercises) {
+        final exDef = await (db.select(db.exerciseDefinitions)
+              ..where((def) => def.id.equals(e.exerciseId)))
+            .getSingle();
+
+        exerciseModels.add(WorkoutTemplateExerciseModel(
+          id: e.id,
+          templateId: e.templateId,
+          exerciseId: e.exerciseId,
+          exercise: ExerciseModel(
+            id: exDef.id,
+            name: exDef.name,
+            category: exDef.category,
+            isFavorite: exDef.isFavorite,
+            isCustom: exDef.isCustom,
+            createdAt: exDef.createdAt,
+          ),
+        ));
+      }
+
+      models.add(WorkoutTemplateModel(
+        id: t.id,
+        name: t.name,
+        createdAt: t.createdAt,
+        exercises: exerciseModels,
+      ));
+    }
+    
+    return models;
+  }
+
+  Future<String> createTemplate(String name, List<String> exerciseIds) async {
+    final templateId = _uuid.v4();
+    await db.into(db.workoutTemplates).insert(
+      WorkoutTemplatesCompanion.insert(
+        id: templateId,
+        name: name,
+      ),
+    );
+
+    for (var i = 0; i < exerciseIds.length; i++) {
+      await db.into(db.workoutTemplateExercises).insert(
+        WorkoutTemplateExercisesCompanion.insert(
+          id: _uuid.v4(),
+          templateId: templateId,
+          exerciseId: exerciseIds[i],
+          sortOrder: i,
+        ),
+      );
+    }
+    return templateId;
+  }
+
+  Future<void> deleteTemplate(String id) async {
+    await (db.delete(db.workoutTemplates)..where((t) => t.id.equals(id))).go();
   }
 }

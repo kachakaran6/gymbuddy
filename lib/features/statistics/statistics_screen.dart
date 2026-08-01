@@ -8,6 +8,62 @@ import '../../core/utils/date_utils.dart';
 import '../../domain/models/models.dart';
 import '../../widgets/gym_widgets.dart';
 
+class StatisticsMetrics {
+  final int weekCheckins;
+  final int weekPlanned;
+  final int weekRate;
+  final int monthCheckins;
+  final int monthMissed;
+
+  StatisticsMetrics({
+    required this.weekCheckins,
+    required this.weekPlanned,
+    required this.weekRate,
+    required this.monthCheckins,
+    required this.monthMissed,
+  });
+}
+
+final statisticsMetricsProvider = Provider<StatisticsMetrics>((ref) {
+  final attState = ref.watch(attendanceProvider);
+  final today = DateTime.now();
+
+  int weekCheckins = 0;
+  int weekPlanned = 0;
+  for (int i = 0; i < 7; i++) {
+    final dt = today.subtract(Duration(days: i));
+    final iso = GymDateUtils.toIsoDate(dt);
+    final status = attState.attendances[iso];
+    if (status == AttendanceStatus.checkedIn) weekCheckins++;
+    if (status != AttendanceStatus.rest) weekPlanned++;
+  }
+  final weekRate =
+      weekPlanned > 0 ? ((weekCheckins / weekPlanned) * 100).round() : 0;
+
+  int monthCheckins = 0;
+  int monthMissed = 0;
+  for (int i = 0; i < 30; i++) {
+    final dt = today.subtract(Duration(days: i));
+    final iso = GymDateUtils.toIsoDate(dt);
+    final status = attState.attendances[iso];
+    if (status == AttendanceStatus.checkedIn) monthCheckins++;
+    if (status == AttendanceStatus.missed) monthMissed++;
+  }
+
+  return StatisticsMetrics(
+    weekCheckins: weekCheckins,
+    weekPlanned: weekPlanned,
+    weekRate: weekRate,
+    monthCheckins: monthCheckins,
+    monthMissed: monthMissed,
+  );
+});
+
+final completedWorkoutsProvider = FutureProvider<List<WorkoutSessionModel>>((ref) async {
+  final repo = ref.watch(repositoryProvider);
+  return await repo.getCompletedWorkouts();
+});
+
 class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
 
@@ -17,32 +73,9 @@ class StatisticsScreen extends ConsumerWidget {
     final attState = ref.watch(attendanceProvider);
     final repo = ref.watch(repositoryProvider);
     final prefs = ref.watch(userPreferencesProvider);
+    final metrics = ref.watch(statisticsMetricsProvider);
 
     final today = DateTime.now();
-
-    // Weekly attendance metrics
-    int weekCheckins = 0;
-    int weekPlanned = 0;
-    for (int i = 0; i < 7; i++) {
-      final dt = today.subtract(Duration(days: i));
-      final iso = GymDateUtils.toIsoDate(dt);
-      final status = attState.attendances[iso];
-      if (status == AttendanceStatus.checkedIn) weekCheckins++;
-      if (status != AttendanceStatus.rest) weekPlanned++;
-    }
-    final weekRate =
-        weekPlanned > 0 ? ((weekCheckins / weekPlanned) * 100).round() : 0;
-
-    // Monthly metrics
-    int monthCheckins = 0;
-    int monthMissed = 0;
-    for (int i = 0; i < 30; i++) {
-      final dt = today.subtract(Duration(days: i));
-      final iso = GymDateUtils.toIsoDate(dt);
-      final status = attState.attendances[iso];
-      if (status == AttendanceStatus.checkedIn) monthCheckins++;
-      if (status == AttendanceStatus.missed) monthMissed++;
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -67,8 +100,8 @@ class StatisticsScreen extends ConsumerWidget {
                     child: GymStatCard(
                       icon: Icons.calendar_today_rounded,
                       label: 'This Week',
-                      value: '$weekCheckins / $weekPlanned',
-                      secondary: '$weekRate% attendance',
+                      value: '${metrics.weekCheckins} / ${metrics.weekPlanned}',
+                      secondary: '${metrics.weekRate}% attendance',
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -76,8 +109,8 @@ class StatisticsScreen extends ConsumerWidget {
                     child: GymStatCard(
                       icon: Icons.event_available_rounded,
                       label: 'This Month',
-                      value: '$monthCheckins',
-                      secondary: '$monthMissed missed',
+                      value: '${metrics.monthCheckins}',
+                      secondary: '${metrics.monthMissed} missed',
                     ),
                   ),
                 ],
@@ -144,10 +177,32 @@ class StatisticsScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: borderColor, width: 1),
       ),
-      child: FutureBuilder<List<WorkoutSessionModel>>(
-        future: repo.getCompletedWorkouts(),
-        builder: (context, snapshot) {
-          final workouts = snapshot.data ?? [];
+      child: ref.watch(completedWorkoutsProvider).when(
+        data: (workouts) {
+          if (workouts.isEmpty) {
+            return SizedBox(
+              height: 160,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.bar_chart_rounded,
+                    size: 40,
+                    color: theme.colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.4),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Log exercises to unlock your volume trend',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
 
           // Build volume data for last 7 days
           final dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -290,6 +345,8 @@ class StatisticsScreen extends ConsumerWidget {
             ),
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, st) => Center(child: Text('Error: $err')),
       ),
     );
   }

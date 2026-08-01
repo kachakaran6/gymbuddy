@@ -30,6 +30,8 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
 
   static const _categories = [
     'All',
+    'Favorites',
+    'Custom',
     'Chest',
     'Back',
     'Legs',
@@ -56,31 +58,30 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
     final borderColor =
         isDark ? const Color(0xFF262626) : const Color(0xFFE5E5E5);
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.88,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: sheetBg,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppRadius.lg),
-            ),
+    return FractionallySizedBox(
+      heightFactor: 0.9,
+      child: Container(
+        decoration: BoxDecoration(
+          color: sheetBg,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.lg),
           ),
-          child: Column(
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Drag handle
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.md),
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurfaceVariant
-                        .withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
               ),
@@ -196,9 +197,12 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
                     final filtered = exercises.where((ex) {
                       final matchSearch =
                           ex.name.toLowerCase().contains(_searchQuery);
-                      final matchCat = _selectedCategory == 'All' ||
-                          ex.category == _selectedCategory;
-                      return matchSearch && matchCat;
+                      if (!matchSearch) return false;
+                      
+                      if (_selectedCategory == 'All') return true;
+                      if (_selectedCategory == 'Favorites') return ex.isFavorite;
+                      if (_selectedCategory == 'Custom') return ex.isCustom;
+                      return ex.category == _selectedCategory;
                     }).toList();
 
                     if (filtered.isEmpty) {
@@ -228,7 +232,6 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
                     }
 
                     return ListView.builder(
-                      controller: scrollController,
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg,
                       ),
@@ -248,8 +251,7 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
               ),
             ],
           ),
-        );
-      },
+        ),
     );
   }
 
@@ -271,7 +273,7 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
             ),
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
-              value: category,
+              initialValue: category,
               decoration: const InputDecoration(labelText: 'Category'),
               items: ['Chest', 'Back', 'Legs', 'Arms', 'Shoulders', 'Cardio', 'Abs']
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -359,7 +361,7 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _ExerciseRow extends StatelessWidget {
+class _ExerciseRow extends ConsumerWidget {
   final ExerciseModel exercise;
   final Color cardBg;
   final Color borderColor;
@@ -373,7 +375,7 @@ class _ExerciseRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     return Container(
@@ -392,7 +394,7 @@ class _ExerciseRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.base,
-              vertical: AppSpacing.md,
+              vertical: AppSpacing.sm,
             ),
             child: Row(
               children: [
@@ -400,12 +402,38 @@ class _ExerciseRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        exercise.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14.5,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              exercise.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.5,
+                              ),
+                            ),
+                          ),
+                          if (exercise.isCustom)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm,
+                                vertical: 2,
+                              ),
+                              margin: const EdgeInsets.only(right: 4),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(AppRadius.sm),
+                              ),
+                              child: Text(
+                                'Custom',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -417,24 +445,42 @@ class _ExerciseRow extends StatelessWidget {
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: Icon(
+                    exercise.isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: exercise.isFavorite ? Colors.orange : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                  onPressed: () async {
+                    final repo = ref.read(repositoryProvider);
+                    await repo.toggleExerciseFavorite(exercise.id, !exercise.isFavorite);
+                    ref.invalidate(exerciseListProvider);
+                  },
+                ),
                 if (exercise.isCustom)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: Text(
-                      'Custom',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
+                  IconButton(
+                    icon: Icon(Icons.delete_outline, color: theme.colorScheme.error.withValues(alpha: 0.7)),
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Delete Custom Exercise?'),
+                          content: const Text('This will permanently delete the custom exercise from your library.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
+                            TextButton(
+                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                              onPressed: () => Navigator.of(ctx).pop(true), 
+                              child: const Text('Delete')
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        final repo = ref.read(repositoryProvider);
+                        await repo.deleteCustomExercise(exercise.id);
+                        ref.invalidate(exerciseListProvider);
+                      }
+                    },
                   )
                 else
                   Icon(

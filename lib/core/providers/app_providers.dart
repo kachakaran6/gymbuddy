@@ -1,10 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database/database.dart';
 import '../../data/repositories/repositories.dart';
 import '../notifications/notification_service.dart';
 import '../../domain/models/models.dart';
 import '../../domain/services/streak_calculator.dart';
+import '../../data/services/backup_service.dart';
 import '../utils/date_utils.dart';
 
 // Singletons
@@ -20,6 +20,10 @@ final repositoryProvider = Provider<GymRepository>((ref) {
 
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return LocalNotificationService();
+});
+
+final backupServiceProvider = Provider<BackupService>((ref) {
+  return BackupService(ref.watch(databaseProvider));
 });
 
 // Preferences State
@@ -272,4 +276,84 @@ final achievementsProvider = FutureProvider<List<AchievementModel>>((ref) async 
   final repo = ref.watch(repositoryProvider);
   final attState = ref.watch(attendanceProvider);
   return await repo.getAchievements(attState.streak.currentStreak);
+});
+
+final templatesProvider = FutureProvider<List<WorkoutTemplateModel>>((ref) async {
+  final repo = ref.watch(repositoryProvider);
+  return await repo.getTemplates();
+});
+
+// Rest Timer State
+class RestTimerState {
+  final DateTime? startTime;
+  final int initialDuration; // in seconds
+  final bool isRunning;
+
+  RestTimerState({
+    this.startTime,
+    this.initialDuration = 60,
+    this.isRunning = false,
+  });
+
+  RestTimerState copyWith({
+    DateTime? startTime,
+    int? initialDuration,
+    bool? isRunning,
+  }) {
+    return RestTimerState(
+      startTime: startTime ?? this.startTime,
+      initialDuration: initialDuration ?? this.initialDuration,
+      isRunning: isRunning ?? this.isRunning,
+    );
+  }
+}
+
+class RestTimerNotifier extends StateNotifier<RestTimerState> {
+  RestTimerNotifier() : super(RestTimerState());
+
+  void startTimer(int seconds) {
+    state = state.copyWith(
+      startTime: DateTime.now(),
+      initialDuration: seconds,
+      isRunning: true,
+    );
+  }
+
+  void stopTimer() {
+    state = state.copyWith(isRunning: false, startTime: null);
+  }
+
+  void addTime(int seconds) {
+    if (state.startTime == null) return;
+    // Shift start time back to add more remaining time
+    final newStartTime = state.startTime!.subtract(Duration(seconds: seconds));
+    state = state.copyWith(startTime: newStartTime);
+  }
+}
+
+final restTimerProvider = StateNotifierProvider<RestTimerNotifier, RestTimerState>((ref) {
+  return RestTimerNotifier();
+});
+
+class ExercisePerformanceParams {
+  final String exerciseId;
+  final String weightUnit;
+
+  ExercisePerformanceParams(this.exerciseId, this.weightUnit);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExercisePerformanceParams &&
+          runtimeType == other.runtimeType &&
+          exerciseId == other.exerciseId &&
+          weightUnit == other.weightUnit;
+
+  @override
+  int get hashCode => exerciseId.hashCode ^ weightUnit.hashCode;
+}
+
+final previousPerformanceProvider = FutureProvider.family<String?, ExercisePerformanceParams>((ref, params) async {
+  final repo = ref.watch(repositoryProvider);
+  return await repo.getPreviousPerformance(params.exerciseId, params.weightUnit);
 });

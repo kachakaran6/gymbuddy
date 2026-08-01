@@ -7,6 +7,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/date_utils.dart';
 import '../../domain/models/models.dart';
 import '../workout/workout_logger_screen.dart';
+import '../workout/templates_screen.dart';
 import '../achievements/achievements_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -409,6 +410,17 @@ class HomeScreen extends ConsumerWidget {
               }
             },
           ),
+          const SizedBox(height: AppSpacing.sm),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.list_alt_rounded, size: 18),
+            label: const Text('Routines & Templates'),
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TemplatesScreen()),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -448,16 +460,22 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                'WORKOUT IN PROGRESS',
-                style: theme.textTheme.labelSmall?.copyWith(
+                'Recovered Session in Progress',
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.onSurfaceVariant,
-                  letterSpacing: 0.6,
+                  color: Colors.orange,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Your previous session was automatically saved.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.base),
           Row(
             children: [
               Icon(Icons.fitness_center_rounded,
