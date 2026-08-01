@@ -360,6 +360,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             spacing: 12,
             children: AppConstants.accentColors.entries.map((entry) {
               final isSelected = _selectedAccent == entry.key;
+              final onColor = AppTheme.getOnAccentColor(entry.value);
               return GestureDetector(
                 onTap: () {
                   setState(() => _selectedAccent = entry.key);
@@ -368,7 +369,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: CircleAvatar(
                   backgroundColor: entry.value,
                   radius: 20,
-                  child: isSelected ? const Icon(Icons.check, color: Colors.white) : null,
+                  child: isSelected ? Icon(Icons.check, color: onColor) : null,
                 ),
               );
             }).toList(),

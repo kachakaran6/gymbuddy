@@ -33,7 +33,13 @@ class AchievementsScreen extends ConsumerWidget {
               final isUnlocked = badge.isUnlocked;
 
               return Card(
-                color: isUnlocked ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerHighest,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: isUnlocked ? theme.colorScheme.primary : theme.dividerColor,
+                    width: isUnlocked ? 1.5 : 1.0,
+                  ),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -41,11 +47,11 @@ class AchievementsScreen extends ConsumerWidget {
                     children: [
                       CircleAvatar(
                         radius: 32,
-                        backgroundColor: isUnlocked ? theme.colorScheme.primary : Colors.grey,
+                        backgroundColor: isUnlocked ? theme.colorScheme.primary : theme.dividerColor,
                         child: Icon(
                           _getIconData(badge.iconName),
                           size: 32,
-                          color: isUnlocked ? Colors.white : Colors.black38,
+                          color: isUnlocked ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -53,7 +59,7 @@ class AchievementsScreen extends ConsumerWidget {
                         badge.title,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: isUnlocked ? theme.colorScheme.onPrimaryContainer : Colors.grey,
+                          color: isUnlocked ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -61,9 +67,7 @@ class AchievementsScreen extends ConsumerWidget {
                       Text(
                         badge.description,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: isUnlocked
-                              ? theme.colorScheme.onPrimaryContainer.withOpacity(0.8)
-                              : Colors.grey,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 2,

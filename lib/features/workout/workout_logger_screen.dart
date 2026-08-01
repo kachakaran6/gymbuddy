@@ -275,7 +275,7 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
             child: CircleAvatar(
               radius: 14,
               backgroundColor: theme.colorScheme.primaryContainer,
-              child: Text('$setNum', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              child: Text('$setNum', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
             ),
           ),
           SizedBox(

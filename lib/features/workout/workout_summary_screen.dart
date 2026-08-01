@@ -106,7 +106,10 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 Text('Newly Unlocked Badges!', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 ...newBadges.map((badge) => Card(
-                      color: theme.colorScheme.primaryContainer,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: Colors.purple, width: 1.5),
+                      ),
                       child: ListTile(
                         leading: const Icon(Icons.workspace_premium, color: Colors.purple),
                         title: Text(badge.title, style: const TextStyle(fontWeight: FontWeight.bold)),

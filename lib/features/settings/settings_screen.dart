@@ -143,21 +143,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const Divider(),
                   ListTile(
                     title: const Text('Accent Color'),
-                    subtitle: Wrap(
-                      spacing: 8,
-                      children: AppConstants.accentColors.entries.map((entry) {
-                        final isSelected = prefs.accentKey == entry.key;
-                        return GestureDetector(
-                          onTap: () {
-                            ref.read(userPreferencesProvider.notifier).setAccentKey(entry.key);
-                          },
-                          child: CircleAvatar(
-                            backgroundColor: entry.value,
-                            radius: 14,
-                            child: isSelected ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
-                          ),
-                        );
-                      }).toList(),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
+                        children: AppConstants.accentColors.entries.map((entry) {
+                          final isSelected = prefs.accentKey == entry.key;
+                          final onColor = AppTheme.getOnAccentColor(entry.value);
+                          return GestureDetector(
+                            onTap: () {
+                              ref.read(userPreferencesProvider.notifier).setAccentKey(entry.key);
+                            },
+                            child: CircleAvatar(
+                              backgroundColor: entry.value,
+                              radius: 16,
+                              child: isSelected ? Icon(Icons.check, size: 18, color: onColor) : null,
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
                 ],

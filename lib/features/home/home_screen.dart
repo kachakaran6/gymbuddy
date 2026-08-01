@@ -92,7 +92,6 @@ class HomeScreen extends ConsumerWidget {
     final level = AppConstants.calculateLevel(totalXp);
 
     return Card(
-      color: theme.colorScheme.primaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Row(
@@ -110,21 +109,18 @@ class HomeScreen extends ConsumerWidget {
                         '${streak.currentStreak} Day Streak',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onPrimaryContainer,
                         ),
                       ),
                       Text(
                         'Longest: ${streak.longestStreak} days',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer.withOpacity(0.8),
-                        ),
+                        style: theme.textTheme.bodySmall,
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-            Container(height: 40, width: 1, color: theme.colorScheme.onPrimaryContainer.withOpacity(0.2)),
+            Container(height: 40, width: 1, color: theme.dividerColor),
             // Level & XP
             Expanded(
               child: Row(
@@ -137,14 +133,11 @@ class HomeScreen extends ConsumerWidget {
                         'Level $level',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onPrimaryContainer,
                         ),
                       ),
                       Text(
                         '$totalXp XP',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer.withOpacity(0.8),
-                        ),
+                        style: theme.textTheme.bodySmall,
                       ),
                     ],
                   ),
@@ -257,25 +250,27 @@ class HomeScreen extends ConsumerWidget {
     WorkoutSessionModel workout,
   ) {
     return Card(
-      elevation: 3,
-      color: theme.colorScheme.tertiaryContainer,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            Icon(Icons.fitness_center, size: 56, color: theme.colorScheme.onTertiaryContainer),
+            Icon(Icons.fitness_center, size: 56, color: theme.colorScheme.primary),
             const SizedBox(height: 16),
             Text(
               'Workout in Progress',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onTertiaryContainer,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               '${workout.exercises.length} Exercises | ${workout.totalCompletedSets} Completed Sets',
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onTertiaryContainer),
+              style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -342,7 +337,6 @@ class HomeScreen extends ConsumerWidget {
 
     return Card(
       elevation: 0,
-      color: theme.colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
