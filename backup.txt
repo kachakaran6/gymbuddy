@@ -1,0 +1,23 @@
+==================================================
+GymBuddy - Android Play Store Upload Credentials
+==================================================
+
+** KEEP THIS FILE SECURE AND DO NOT COMMIT IT TO PUBLIC GIT **
+
+1. Keystore File
+----------------
+Location: android/app/upload-keystore.jks
+
+2. Credentials
+--------------
+Key Alias:      upload
+Store Password: GymBuddy2026!
+Key Password:   GymBuddy2026!
+
+3. Certificate Fingerprints
+---------------------------
+SHA-1:  57:CA:98:9A:CD:3A:94:C0:FF:DF:27:55:DB:A2:55:53:92:10:C7:CD
+SHA-256: 4A:DF:9A:47:D3:64:9B:CD:C5:84:00:DA:5E:C5:4C:D5:59:32:89:9E:AC:61:7C:75:AF:46:A7:F5:31:C7:20:B3
+
+You will need the SHA-1 or SHA-256 when configuring Firebase, Google Sign-In, Maps APIs, etc.
+When you upload the app bundle (.aab) to Google Play Console for the first time, Google Play Console will register this keystore as your upload key.
