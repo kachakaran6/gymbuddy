@@ -344,11 +344,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 24),
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'system', label: Text('System')),
-              ButtonSegment(value: 'light', label: Text('Light')),
-              ButtonSegment(value: 'dark', label: Text('Dark')),
+              ButtonSegment(value: 'light', icon: Icon(Icons.light_mode_outlined), label: Text('Light')),
+              ButtonSegment(value: 'dark', icon: Icon(Icons.dark_mode_outlined), label: Text('Dark')),
             ],
-            selected: {_selectedTheme},
+            selected: {_selectedTheme == 'dark' ? 'dark' : 'light'},
             onSelectionChanged: (set) {
               setState(() => _selectedTheme = set.first);
               ref.read(userPreferencesProvider.notifier).setThemeMode(set.first);

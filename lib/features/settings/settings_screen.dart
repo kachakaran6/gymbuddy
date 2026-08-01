@@ -126,18 +126,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const Divider(),
                   ListTile(
-                    title: const Text('Theme Mode'),
-                    trailing: DropdownButton<String>(
-                      value: prefs.themeMode,
-                      items: const [
-                        DropdownMenuItem(value: 'system', child: Text('System')),
-                        DropdownMenuItem(value: 'light', child: Text('Light')),
-                        DropdownMenuItem(value: 'dark', child: Text('Dark')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          ref.read(userPreferencesProvider.notifier).setThemeMode(val);
-                        }
+                    leading: Icon(
+                      prefs.themeMode == 'dark' ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    title: const Text('Dark Mode'),
+                    subtitle: Text(
+                      prefs.themeMode == 'dark' ? 'Dark theme active' : 'Light theme active',
+                    ),
+                    trailing: Switch.adaptive(
+                      value: prefs.themeMode == 'dark',
+                      onChanged: (isDark) {
+                        ref.read(userPreferencesProvider.notifier).setThemeMode(isDark ? 'dark' : 'light');
                       },
                     ),
                   ),
