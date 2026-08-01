@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/app_providers.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/utils/date_utils.dart';
 import '../../domain/models/models.dart';
 import '../../domain/services/pr_detector.dart';
+import '../../widgets/gym_widgets.dart';
 import 'exercise_picker_dialog.dart';
 import 'workout_summary_screen.dart';
 
@@ -13,7 +16,8 @@ class WorkoutLoggerScreen extends ConsumerStatefulWidget {
   const WorkoutLoggerScreen({super.key});
 
   @override
-  ConsumerState<WorkoutLoggerScreen> createState() => _WorkoutLoggerScreenState();
+  ConsumerState<WorkoutLoggerScreen> createState() =>
+      _WorkoutLoggerScreenState();
 }
 
 class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
@@ -52,16 +56,18 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
     final action = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Unsaved Workout Changes'),
-        content: const Text('You have an active workout in progress. What would you like to do?'),
+        title: const Text('Active Workout'),
+        content: const Text(
+          'You have an active workout. What would you like to do?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop('keep'),
             child: const Text('Keep Editing'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop('discard'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop('discard'),
             child: const Text('Discard'),
           ),
           FilledButton(
@@ -87,9 +93,29 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
     final theme = Theme.of(context);
 
     if (workout == null) {
+      // Auto-start if no workout exists yet (handles race condition or direct deep-link)
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (mounted) {
+          await ref.read(activeWorkoutProvider.notifier).startWorkout();
+        }
+      });
       return Scaffold(
-        appBar: AppBar(title: const Text('Workout Logger')),
-        body: const Center(child: Text('No active workout session.')),
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Starting workout…'),
+            ],
+          ),
+        ),
       );
     }
 
@@ -100,12 +126,50 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
       onPopInvokedWithResult: (didPop, result) => _handlePopScope(didPop),
       child: Scaffold(
         appBar: AppBar(
-          title: Text(GymDateUtils.formatDuration(totalElapsed)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => _handlePopScope(false),
+          ),
+          // Live timer as title
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.orange,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                GymDateUtils.formatDuration(totalElapsed),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
           centerTitle: true,
           actions: [
-            TextButton(
-              onPressed: () => _finishWorkout(workout, prefs.weightUnit),
-              child: const Text('Finish', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Padding(
+              padding:
+                  const EdgeInsets.only(right: AppSpacing.md),
+              child: FilledButton(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  _finishWorkout(workout, prefs.weightUnit);
+                },
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: const Text(
+                  'Finish',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
             ),
           ],
         ),
@@ -114,78 +178,110 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
             children: [
               Expanded(
                 child: workout.exercises.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.fitness_center, size: 64, color: theme.colorScheme.outline),
-                            const SizedBox(height: 16),
-                            Text('No exercises added yet.', style: theme.textTheme.titleMedium),
-                            const SizedBox(height: 8),
-                            Text('Tap below to add an exercise from the library.', style: theme.textTheme.bodySmall),
-                          ],
-                        ),
+                    ? GymEmptyState(
+                        icon: Icons.fitness_center_rounded,
+                        title: 'Build your workout',
+                        body:
+                            'Add your first exercise and start moving. Every rep counts.',
+                        actionLabel: '+ Add Exercise',
+                        onAction: () => _addExercise(context),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.all(AppSpacing.base),
                         itemCount: workout.exercises.length,
                         itemBuilder: (ctx, idx) {
                           final workoutEx = workout.exercises[idx];
-                          return _buildExerciseCard(context, ref, theme, workoutEx, prefs.weightUnit);
+                          return _buildExerciseCard(
+                            context,
+                            ref,
+                            theme,
+                            workoutEx,
+                            prefs.weightUnit,
+                          );
                         },
                       ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    FilledButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add Exercise'),
-                      onPressed: () async {
-                        final selectedEx = await showDialog<ExerciseModel>(
-                          context: context,
-                          builder: (_) => const ExercisePickerDialog(),
-                        );
-                        if (selectedEx != null) {
-                          await ref.read(activeWorkoutProvider.notifier).addExercise(selectedEx.id);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                      onPressed: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Discard Workout?'),
-                            content: const Text('Are you sure you want to discard this active workout draft?'),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                              FilledButton(
-                                onPressed: () => Navigator.of(ctx).pop(true),
-                                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                                child: const Text('Discard'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirm == true) {
-                          await ref.read(activeWorkoutProvider.notifier).discardWorkout();
-                          if (mounted) Navigator.of(context).pop();
-                        }
-                      },
-                      child: const Text('Discard Workout'),
-                    ),
-                  ],
-                ),
-              ),
+
+              // Bottom actions
+              _buildBottomActions(context, ref, theme, workout),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildBottomActions(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    WorkoutSessionModel workout,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.base),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: theme.dividerColor,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Discard — ghost destructive, visually lower priority
+          TextButton.icon(
+            icon: const Icon(Icons.delete_outline, size: 16),
+            label: const Text('Discard'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red.shade400,
+            ),
+            onPressed: () => _confirmDiscard(context, ref),
+          ),
+          const Spacer(),
+          // Primary add exercise
+          FilledButton.icon(
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Add Exercise'),
+            onPressed: () => _addExercise(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addExercise(BuildContext context) async {
+    final selectedEx = await showExercisePicker(context);
+    if (selectedEx != null) {
+      HapticFeedback.selectionClick();
+      await ref.read(activeWorkoutProvider.notifier).addExercise(selectedEx.id);
+    }
+  }
+
+  Future<void> _confirmDiscard(BuildContext context, WidgetRef ref) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Discard Workout?'),
+        content:
+            const Text('Are you sure you want to discard this workout draft?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await ref.read(activeWorkoutProvider.notifier).discardWorkout();
+      if (mounted) Navigator.of(context).pop();
+    }
   }
 
   Widget _buildExerciseCard(
@@ -196,58 +292,151 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
     String weightUnit,
   ) {
     final exName = workoutEx.exercise?.name ?? 'Exercise';
+    final category = workoutEx.exercise?.category ?? '';
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
+    final borderColor =
+        isDark ? const Color(0xFF262626) : const Color(0xFFE5E5E5);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Exercise Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.base,
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.sm,
+            ),
+            child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    exName,
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        exName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (category.isNotEmpty)
+                        Text(
+                          category,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      color: Colors.red, size: 20),
                   onPressed: () {
-                    ref.read(activeWorkoutProvider.notifier).deleteExercise(workoutEx.id);
+                    ref
+                        .read(activeWorkoutProvider.notifier)
+                        .deleteExercise(workoutEx.id);
                   },
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            // Header Row
-            const Row(
+          ),
+
+          // Column headers
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
+            child: Row(
               children: [
-                SizedBox(width: 40, child: Text('Set', style: TextStyle(fontWeight: FontWeight.bold))),
-                SizedBox(width: 70, child: Text('Type', style: TextStyle(fontWeight: FontWeight.bold))),
-                Expanded(child: Text('Weight', style: TextStyle(fontWeight: FontWeight.bold))),
-                SizedBox(width: 8),
-                Expanded(child: Text('Reps', style: TextStyle(fontWeight: FontWeight.bold))),
-                SizedBox(width: 40),
+                SizedBox(
+                  width: 36,
+                  child: Text(
+                    'SET',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 68,
+                  child: Text(
+                    'TYPE',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    weightUnit.toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'REPS',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 36),
               ],
             ),
-            const Divider(),
-            ...workoutEx.sets.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final setModel = entry.value;
-              return _buildSetRow(context, ref, theme, workoutEx.id, idx + 1, setModel, weightUnit);
-            }),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Add Set'),
+          ),
+
+          const SizedBox(height: AppSpacing.xs),
+
+          // Set rows
+          ...workoutEx.sets.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final setModel = entry.value;
+            return _buildSetRow(
+              context,
+              ref,
+              theme,
+              workoutEx.id,
+              idx + 1,
+              setModel,
+              weightUnit,
+            );
+          }),
+
+          // Add Set button
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
+            child: TextButton.icon(
+              icon: Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
+              label: Text(
+                'Add Set',
+                style: TextStyle(color: theme.colorScheme.primary),
+              ),
               onPressed: () {
                 ref.read(activeWorkoutProvider.notifier).addSet(workoutEx.id);
               },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -262,24 +451,38 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
     String weightUnit,
   ) {
     final weightVal = setModel.weightKg != null
-        ? GymDateUtils.convertWeight(setModel.weightKg!, weightUnit).toStringAsFixed(1)
+        ? GymDateUtils.convertWeight(setModel.weightKg!, weightUnit)
+            .toStringAsFixed(1)
         : '';
     final repsVal = setModel.reps?.toString() ?? '';
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.base,
+        vertical: AppSpacing.xs,
+      ),
       child: Row(
         children: [
+          // Set number avatar
           SizedBox(
-            width: 40,
+            width: 36,
             child: CircleAvatar(
-              radius: 14,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              child: Text('$setNum', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+              radius: 13,
+              backgroundColor:
+                  theme.colorScheme.primary.withValues(alpha: 0.12),
+              child: Text(
+                '$setNum',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
             ),
           ),
+          // Set type dropdown
           SizedBox(
-            width: 70,
+            width: 68,
             child: DropdownButton<SetType>(
               isDense: true,
               value: setModel.setType,
@@ -287,62 +490,90 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
               items: SetType.values.map((st) {
                 return DropdownMenuItem(
                   value: st,
-                  child: Text(st.name[0].toUpperCase() + st.name.substring(1), style: const TextStyle(fontSize: 12)),
+                  child: Text(
+                    st.name[0].toUpperCase() + st.name.substring(1),
+                    style: const TextStyle(fontSize: 12),
+                  ),
                 );
               }).toList(),
               onChanged: (val) {
                 if (val != null) {
-                  ref.read(activeWorkoutProvider.notifier).updateSet(setModel.copyWith(setType: val));
+                  ref
+                      .read(activeWorkoutProvider.notifier)
+                      .updateSet(setModel.copyWith(setType: val));
                 }
               },
             ),
           ),
+          // Weight input
           Expanded(
             child: TextField(
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 hintText: weightUnit,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.sm,
+                ),
                 border: const OutlineInputBorder(),
               ),
               controller: TextEditingController(text: weightVal)
-                ..selection = TextSelection.collapsed(offset: weightVal.length),
+                ..selection =
+                    TextSelection.collapsed(offset: weightVal.length),
               onChanged: (val) {
                 final doubleVal = double.tryParse(val);
                 if (doubleVal != null) {
-                  final kgVal = GymDateUtils.toCanonicalKg(doubleVal, weightUnit);
-                  ref.read(activeWorkoutProvider.notifier).updateSet(setModel.copyWith(weightKg: kgVal));
+                  final kgVal =
+                      GymDateUtils.toCanonicalKg(doubleVal, weightUnit);
+                  ref
+                      .read(activeWorkoutProvider.notifier)
+                      .updateSet(setModel.copyWith(weightKg: kgVal));
                 }
               },
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
+          // Reps input
           Expanded(
             child: TextField(
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 hintText: 'Reps',
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.sm,
+                ),
                 border: OutlineInputBorder(),
               ),
               controller: TextEditingController(text: repsVal)
-                ..selection = TextSelection.collapsed(offset: repsVal.length),
+                ..selection =
+                    TextSelection.collapsed(offset: repsVal.length),
               onChanged: (val) {
                 final intVal = int.tryParse(val);
                 if (intVal != null) {
-                  ref.read(activeWorkoutProvider.notifier).updateSet(setModel.copyWith(reps: intVal));
+                  ref
+                      .read(activeWorkoutProvider.notifier)
+                      .updateSet(setModel.copyWith(reps: intVal));
                 }
               },
             ),
           ),
+          // Delete set
           SizedBox(
-            width: 40,
+            width: 36,
             child: IconButton(
-              icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+              icon: Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               onPressed: () {
-                ref.read(activeWorkoutProvider.notifier).deleteSet(setModel.id);
+                ref
+                    .read(activeWorkoutProvider.notifier)
+                    .deleteSet(setModel.id);
               },
             ),
           ),
@@ -351,25 +582,35 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
     );
   }
 
-  Future<void> _finishWorkout(WorkoutSessionModel workout, String weightUnit) async {
+  Future<void> _finishWorkout(
+      WorkoutSessionModel workout, String weightUnit) async {
     final repo = ref.read(repositoryProvider);
 
     // Detect PRs
     final completedWorkouts = await repo.getCompletedWorkouts();
     final List<PersonalRecordModel> existingPRs = [];
     for (var w in completedWorkouts) {
-      final detected = PrDetector.detectNewPRs(workout: w, existingPRs: [], weightUnit: weightUnit);
+      final detected = PrDetector.detectNewPRs(
+        workout: w,
+        existingPRs: [],
+        weightUnit: weightUnit,
+      );
       existingPRs.addAll(detected);
     }
 
-    final newPRs = PrDetector.detectNewPRs(workout: workout, existingPRs: existingPRs, weightUnit: weightUnit);
+    final newPRs = PrDetector.detectNewPRs(
+      workout: workout,
+      existingPRs: existingPRs,
+      weightUnit: weightUnit,
+    );
 
     // Finish Workout & Award XP
     await ref.read(activeWorkoutProvider.notifier).finishWorkout();
 
     // Check Badges
     final attState = ref.read(attendanceProvider);
-    final newBadges = await repo.getAchievements(attState.streak.currentStreak);
+    final newBadges =
+        await repo.getAchievements(attState.streak.currentStreak);
     final recentlyUnlocked = newBadges.where((b) => b.isUnlocked).toList();
 
     // Invalidate XP & Achievements Providers
