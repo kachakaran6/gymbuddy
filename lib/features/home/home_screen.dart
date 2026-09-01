@@ -10,6 +10,8 @@ import '../workout/workout_logger_screen.dart';
 import '../workout/templates_screen.dart';
 import '../achievements/achievements_screen.dart';
 import '../tools/presentation/gym_tools_screen.dart';
+import '../tools/presentation/screens/plate_calculator_screen.dart';
+import '../workout/exercise_library_screen.dart';
 
 
 class HomeScreen extends ConsumerWidget {
@@ -664,20 +666,32 @@ class HomeScreen extends ConsumerWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.donut_large_rounded, size: 16),
-                  label: const Text('Plates'),
+                  icon: const Icon(Icons.menu_book_rounded, size: 16),
+                  label: const Text('500+ Library'),
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const GymToolsHubScreen()),
+                      MaterialPageRoute(builder: (_) => const ExerciseLibraryScreen()),
                     );
                   },
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.donut_large_rounded, size: 16),
+                  label: const Text('Plates'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PlateCalculatorScreen()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: FilledButton.tonalIcon(
                   icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                  label: const Text('Open Hub'),
+                  label: const Text('Tools'),
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const GymToolsHubScreen()),

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../domain/models/models.dart';
+import 'exercise_library_screen.dart';
+
 
 /// Shows the exercise picker as a proper mobile-first bottom sheet.
 /// Returns the selected [ExerciseModel] or null if dismissed.
@@ -104,6 +106,32 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
                         ),
                       ),
                     ),
+                    FilledButton.tonalIcon(
+                      icon: const Icon(Icons.menu_book_rounded, size: 16),
+                      label: const Text('500+ Library'),
+                      style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+                      onPressed: () async {
+                        final navigator = Navigator.of(context);
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ExerciseLibraryScreen(
+                              onExerciseSelected: (catalogEx) async {
+                                final repo = ref.read(workoutRepositoryProvider);
+                                final existing = await repo.getExerciseDefinitions();
+                                final match = existing
+                                    .where((e) => e.name.toLowerCase() == catalogEx.name.toLowerCase())
+                                    .firstOrNull;
+                                final resultEx = match ??
+                                    await repo.createCustomExercise(catalogEx.name, catalogEx.category);
+                                ref.invalidate(exerciseListProvider);
+                                navigator.pop(resultEx);
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
                     TextButton.icon(
                       icon: const Icon(Icons.add, size: 16),
                       label: const Text('Custom'),
