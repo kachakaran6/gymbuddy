@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -465,6 +467,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       await Share.share(jsonStr, subject: 'GymBuddy_Backup.json');
                     },
                   ),
+                  Divider(height: 1, thickness: 1, color: borderColor),
+                  GymSettingsRow(
+                    icon: Icons.file_download_outlined,
+                    title: 'Import from Strong / Hevy',
+                    subtitle: 'Import workout history from Strong or Hevy CSV',
+                    onTap: () => _showUniversalCsvImportDialog(context, ref),
+                  ),
                 ],
               ),
             ),
@@ -571,11 +580,208 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _handleImportData(BuildContext context, WidgetRef ref) async {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('File picking not implemented. Please use external tools to restore data.')),
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (result != null && result.files.single.path != null) {
+        final file = File(result.files.single.path!);
+        if (context.mounted) {
+          await _restoreFromFile(context, ref, file);
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking file: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showUniversalCsvImportDialog(BuildContext context, WidgetRef ref) async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Row(
+                children: [
+                  Icon(Icons.file_download_rounded, color: Color(0xFF10B981)),
+                  SizedBox(width: 10),
+                  Text(
+                    'Import from Strong / Hevy',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Seamlessly migrate all your historical workouts, exercises, and weight logs from Strong App or Hevy CSV exports into GymBuddy.',
+                style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                icon: const Icon(Icons.folder_open_rounded),
+                label: const Text('Pick CSV File'),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    final result = await FilePicker.platform.pickFiles(
+                      type: FileType.custom,
+                      allowedExtensions: ['csv', 'txt'],
+                    );
+                    if (result != null && result.files.single.path != null) {
+                      final file = File(result.files.single.path!);
+                      final content = await file.readAsString();
+                      if (context.mounted) {
+                        await _processCsvImport(context, ref, content);
+                      }
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to read CSV: $e')),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.paste_rounded),
+                label: const Text('Paste CSV Text'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _showPasteCsvDialog(context, ref);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
+
+  void _showPasteCsvDialog(BuildContext context, WidgetRef ref) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Paste CSV Data'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: TextField(
+            controller: ctrl,
+            maxLines: 8,
+            decoration: const InputDecoration(
+              hintText: 'Paste CSV rows here from Strong or Hevy...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              final text = ctrl.text.trim();
+              Navigator.pop(ctx);
+              if (text.isNotEmpty) {
+                _processCsvImport(context, ref, text);
+              }
+            },
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processCsvImport(BuildContext context, WidgetRef ref, String csvContent) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final summary = await ref.read(universalImportServiceProvider).importCsv(csvContent);
+      if (context.mounted) Navigator.pop(context); // pop loading
+
+      // Refresh providers
+      ref.invalidate(attendanceProvider);
+      ref.invalidate(totalXpProvider);
+      ref.invalidate(exerciseListProvider);
+
+      if (!context.mounted) return;
+      final rangeText = summary.earliestDate != null && summary.latestDate != null
+          ? '${DateFormat('MMM yyyy').format(summary.earliestDate!)} – ${DateFormat('MMM yyyy').format(summary.latestDate!)}'
+          : 'All time';
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 48),
+          title: const Text('Import Successful!'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('• Workouts Imported: ${summary.workoutsImported}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text('• Sets Logged: ${summary.setsImported}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text('• Exercises Matched: ${summary.exercisesMatched}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text('• Date Span: $rangeText', style: const TextStyle(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context); // pop loading
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.error_outline_rounded, color: Colors.red, size: 44),
+            title: const Text('Import Failed'),
+            content: Text('$e'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
 
   Future<void> _restoreFromFile(BuildContext context, WidgetRef ref, File file) async {
     final confirm = await showDialog<bool>(

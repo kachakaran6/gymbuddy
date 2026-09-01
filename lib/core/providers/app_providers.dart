@@ -6,6 +6,7 @@ import '../notifications/notification_service.dart';
 import '../../domain/models/models.dart';
 import '../../domain/services/streak_calculator.dart';
 import '../../data/services/backup_service.dart';
+import '../../data/services/universal_import_service.dart';
 import '../services/rest_alarm_service.dart';
 import '../utils/date_utils.dart';
 
@@ -27,6 +28,11 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 final backupServiceProvider = Provider<BackupService>((ref) {
   return BackupService(ref.watch(databaseProvider));
 });
+
+final universalImportServiceProvider = Provider<UniversalImportService>((ref) {
+  return UniversalImportService(ref.watch(databaseProvider));
+});
+
 
 // Preferences State
 class PreferencesNotifier extends StateNotifier<UserPreferencesModel> {
