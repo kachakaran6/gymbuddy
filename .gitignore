@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Fastlane & Signing Security
+**/fastlane/api-key.json
+flutter-applcations-*.json
+*.keystore
+*.jks
+key.properties
+
+GymMane-main/
+flutter-applcations-*.json
+*-*.json

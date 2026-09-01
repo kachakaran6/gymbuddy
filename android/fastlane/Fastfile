@@ -1,0 +1,121 @@
+ENV["FASTLANE_SKIP_UPDATE_CHECK"] = "1"
+ENV["FASTLANE_HIDE_CHANGELOG"] = "1"
+ENV["FASTLANE_OPT_OUT_USAGE"] = "1"
+
+default_platform(:android)
+
+def get_target_build_number(options = {})
+  pubspec_path = File.expand_path("../../pubspec.yaml", __dir__)
+  current_version = "1.0.0"
+  current_build = 1
+
+  if File.exist?(pubspec_path)
+    content = File.read(pubspec_path)
+    if (match = content.match(/^version:\s*([^\s+]+)\+(\d+)/))
+      current_version = match[1]
+      current_build = match[2].to_i
+    end
+  end
+
+  default_next = current_build + 1
+
+  if options[:build_number] || options[:version_code]
+    target_build = (options[:build_number] || options[:version_code]).to_i
+  elsif UI.interactive?
+    UI.important("--------------------------------------------------")
+    UI.important("📦 Current pubspec.yaml version : #{current_version}+#{current_build}")
+    UI.important("🔢 Next default Build Number   : #{default_next}")
+    UI.important("--------------------------------------------------")
+
+    user_input = UI.input("Enter build number (Press ENTER to use default #{default_next}): ")
+    target_build = user_input.strip.empty? ? default_next : user_input.strip.to_i
+  else
+    target_build = default_next
+  end
+
+  # Update pubspec.yaml to sync version
+  if File.exist?(pubspec_path)
+    new_content = File.read(pubspec_path).sub(/^version:\s*.+$/, "version: #{current_version}+#{target_build}")
+    File.write(pubspec_path, new_content)
+    UI.success("Updated pubspec.yaml to version: #{current_version}+#{target_build}")
+  end
+
+  UI.success("=> Using Build Number: #{target_build}")
+  target_build
+end
+
+def build_flutter_aab(build_num)
+  root_dir = File.expand_path("../..", __dir__)
+  UI.message("Building Flutter release appbundle from: #{root_dir}")
+  
+  Dir.chdir(root_dir) do
+    sh("flutter build appbundle --release --build-number=#{build_num}")
+  end
+
+  aab_path = File.expand_path("../../build/app/outputs/bundle/release/app-release.aab", __dir__)
+  unless File.exist?(aab_path)
+    UI.user_error!("Could not find built appbundle at: #{aab_path}")
+  end
+  
+  aab_path
+end
+
+platform :android do
+  lane :test do
+    root_dir = File.expand_path("../..", __dir__)
+    Dir.chdir(root_dir) do
+      sh("flutter test")
+    end
+  end
+
+  lane :build do |options|
+    build_num = get_target_build_number(options)
+    build_flutter_aab(build_num)
+  end
+
+  lane :closed do |options|
+    track_name = options[:track] || 'alpha'
+    build_num = get_target_build_number(options)
+    aab_path = build_flutter_aab(build_num)
+
+    upload_to_play_store(
+      track: track_name,
+      aab: aab_path,
+      json_key: File.expand_path("api-key.json", __dir__),
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  lane :internal do |options|
+    build_num = get_target_build_number(options)
+    aab_path = build_flutter_aab(build_num)
+
+    upload_to_play_store(
+      track: 'internal',
+      aab: aab_path,
+      json_key: File.expand_path("api-key.json", __dir__),
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  lane :beta do |options|
+    build_num = get_target_build_number(options)
+    aab_path = build_flutter_aab(build_num)
+
+    upload_to_play_store(
+      track: 'beta',
+      aab: aab_path,
+      json_key: File.expand_path("api-key.json", __dir__),
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end
