@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/app_providers.dart';
 import '../../domain/models/models.dart';
 import '../../domain/services/muscle_analytics_service.dart';
+import '../../widgets/interactive_body_map.dart';
 import 'widgets/muscle_interactive_body.dart';
 import 'widgets/muscle_breakdown_list.dart';
 import 'widgets/period_filter_bar.dart';
 
 final musclePeriodProvider = StateProvider<MusclePeriod>((ref) => MusclePeriod.month);
 final selectedMuscleProvider = StateProvider<MuscleGroup?>((ref) => null);
+final dualBodyViewProvider = StateProvider<bool>((ref) => true);
 
 final muscleAnalyticsProvider = FutureProvider<MuscleAnalyticsResult>((ref) async {
   final workouts = await ref.watch(completedWorkoutsProvider.future);
@@ -51,7 +53,34 @@ class MuscleProgressScreen extends ConsumerWidget {
               ref.read(selectedMuscleProvider.notifier).state = null;
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                      value: true,
+                      label: Text('Dual Anatomy', style: TextStyle(fontSize: 12)),
+                      icon: Icon(Icons.accessibility_new_rounded, size: 14),
+                    ),
+                    ButtonSegment(
+                      value: false,
+                      label: Text('3D Flip', style: TextStyle(fontSize: 12)),
+                      icon: Icon(Icons.flip_camera_android_rounded, size: 14),
+                    ),
+                  ],
+                  selected: {ref.watch(dualBodyViewProvider)},
+                  onSelectionChanged: (val) {
+                    ref.read(dualBodyViewProvider.notifier).state = val.first;
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
           Expanded(
             child: analyticsAsync.when(
               data: (result) {
@@ -63,19 +92,82 @@ class MuscleProgressScreen extends ConsumerWidget {
                   child: CustomScrollView(
                     slivers: [
                       SliverToBoxAdapter(
-                        child: SizedBox(
-                          height: 400,
-                          child: MuscleInteractiveBody(
-                            normalizedScores: result.normalizedScores,
-                            selectedMuscle: selectedMuscle,
-                            onMuscleSelected: (muscle) {
-                              ref.read(selectedMuscleProvider.notifier).state = muscle;
-                              if (muscle != null) {
-                                _showMuscleDetails(context, ref, muscle, result);
-                              }
-                            },
-                          ),
-                        ),
+                        child: ref.watch(dualBodyViewProvider)
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF1E1E1E)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                          ? const Color(0xFF2C2C2C)
+                                          : const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            'TOUCH MUSCLE TO INSPECT',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 1.5,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              const Text('Rest', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                              const SizedBox(width: 4),
+                                              for (final c in const [Color(0xFF78350F), Color(0xFFD97706), Color(0xFFF97316), Color(0xFF10B981)])
+                                                Container(
+                                                  width: 8,
+                                                  height: 8,
+                                                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                                                  decoration: BoxDecoration(color: c, shape: BoxShape.circle),
+                                                ),
+                                              const SizedBox(width: 4),
+                                              const Text('Active', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      BodyHeatMap(
+                                        intensity: _toHeatMapIntensity(result.normalizedScores),
+                                        onMuscleTap: (id) {
+                                          final mg = _stringToMuscleGroup(id);
+                                          if (mg != null) {
+                                            ref.read(selectedMuscleProvider.notifier).state = mg;
+                                            _showMuscleDetails(context, ref, mg, result);
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : SizedBox(
+                                height: 400,
+                                child: MuscleInteractiveBody(
+                                  normalizedScores: result.normalizedScores,
+                                  selectedMuscle: selectedMuscle,
+                                  onMuscleSelected: (muscle) {
+                                    ref.read(selectedMuscleProvider.notifier).state = muscle;
+                                    if (muscle != null) {
+                                      _showMuscleDetails(context, ref, muscle, result);
+                                    }
+                                  },
+                                ),
+                              ),
                       ),
                       const SliverPadding(
                         padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -261,4 +353,90 @@ class MuscleProgressScreen extends ConsumerWidget {
       ref.read(selectedMuscleProvider.notifier).state = null;
     });
   }
+
+  static MuscleGroup? _stringToMuscleGroup(String str) {
+    switch (str.toLowerCase()) {
+      case 'chest':
+        return MuscleGroup.chest;
+      case 'lats':
+      case 'back':
+        return MuscleGroup.back;
+      case 'quads':
+        return MuscleGroup.quads;
+      case 'hamstring':
+      case 'hamstrings':
+        return MuscleGroup.hamstrings;
+      case 'glutes':
+        return MuscleGroup.glutes;
+      case 'calves':
+        return MuscleGroup.calves;
+      case 'shoulders':
+      case 'delts':
+        return MuscleGroup.shoulders;
+      case 'biceps':
+        return MuscleGroup.biceps;
+      case 'triceps':
+        return MuscleGroup.triceps;
+      case 'forearm':
+      case 'forearms':
+        return MuscleGroup.forearms;
+      case 'abs':
+      case 'obliques':
+        return MuscleGroup.abs;
+      case 'traps':
+      case 'trapezius':
+        return MuscleGroup.traps;
+      default:
+        return null;
+    }
+  }
+
+  static Map<String, double> _toHeatMapIntensity(Map<MuscleGroup, double> scores) {
+    final res = <String, double>{};
+    for (final e in scores.entries) {
+      final v = e.value;
+      switch (e.key) {
+        case MuscleGroup.chest:
+          res['chest'] = v;
+          break;
+        case MuscleGroup.back:
+          res['lats'] = v;
+          break;
+        case MuscleGroup.quads:
+          res['quads'] = v;
+          break;
+        case MuscleGroup.hamstrings:
+          res['hamstring'] = v;
+          break;
+        case MuscleGroup.glutes:
+          res['glutes'] = v;
+          break;
+        case MuscleGroup.calves:
+          res['calves'] = v;
+          break;
+        case MuscleGroup.shoulders:
+          res['shoulders'] = v;
+          break;
+        case MuscleGroup.biceps:
+          res['biceps'] = v;
+          break;
+        case MuscleGroup.triceps:
+          res['triceps'] = v;
+          break;
+        case MuscleGroup.forearms:
+          res['forearm'] = v;
+          break;
+        case MuscleGroup.abs:
+          res['abs'] = v;
+          break;
+        case MuscleGroup.traps:
+          res['traps'] = v;
+          break;
+        default:
+          break;
+      }
+    }
+    return res;
+  }
 }
+
