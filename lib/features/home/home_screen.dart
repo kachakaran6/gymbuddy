@@ -9,6 +9,8 @@ import '../../domain/models/models.dart';
 import '../workout/workout_logger_screen.dart';
 import '../workout/templates_screen.dart';
 import '../achievements/achievements_screen.dart';
+import '../tools/presentation/gym_tools_screen.dart';
+
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -77,6 +79,11 @@ class HomeScreen extends ConsumerWidget {
 
                   const SizedBox(height: AppSpacing.base),
 
+                  // Gym Floor Tools & Calculators
+                  _buildGymToolsCard(context, theme),
+
+                  const SizedBox(height: AppSpacing.base),
+
                   // Motivation Strip
                   _buildMotivationStrip(context, theme),
                 ]),
@@ -117,6 +124,20 @@ class HomeScreen extends ConsumerWidget {
             ],
           ),
         ),
+        IconButton.filled(
+          icon: const Icon(Icons.calculate_outlined, size: 22),
+          tooltip: 'Gym Tools & Calculators',
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const GymToolsHubScreen()),
+            );
+          },
+          style: IconButton.styleFrom(
+            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
+            foregroundColor: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.xs),
         IconButton.filled(
           icon: const Icon(Icons.emoji_events_outlined, size: 22),
           onPressed: () {
@@ -580,6 +601,91 @@ class HomeScreen extends ConsumerWidget {
                 );
               }
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGymToolsCard(BuildContext context, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF262626) : const Color(0xFFE5E5E5);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(
+                  Icons.calculate_rounded,
+                  color: Color(0xFF6366F1),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Gym Tools & Calculators',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '1RM, Barbell Plates, Warmups, Macros & TDEE',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.base),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.donut_large_rounded, size: 16),
+                  label: const Text('Plates'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const GymToolsHubScreen()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                  label: const Text('Open Hub'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const GymToolsHubScreen()),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
