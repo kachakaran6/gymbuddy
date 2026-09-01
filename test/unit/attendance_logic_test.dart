@@ -19,20 +19,20 @@ void main() {
 
   group('Attendance Logic & Reconciliation Tests', () {
     test('Check-in adds checkedIn status', () async {
-      await repo.checkIn('2026-08-01');
+      await repo.recordCheckIn('2026-08-01');
       final attendances = await repo.getAllAttendances();
       expect(attendances['2026-08-01'], AttendanceStatus.checkedIn);
     });
 
     test('reconcileMissedDays marks past scheduled days as missed if not checked in', () async {
       // Create a schedule for Monday (1) and Wednesday (3)
-      await repo.updateGymSchedules([
+      await repo.saveGymSchedules([
         const GymScheduleModel(weekday: 1, enabled: true, gymHour: 18, gymMinute: 0),
         const GymScheduleModel(weekday: 3, enabled: true, gymHour: 18, gymMinute: 0),
       ]);
 
       // Mock a check-in on Monday
-      await repo.checkIn('2026-07-27'); // Mon
+      await repo.recordCheckIn('2026-07-27'); // Mon
 
       // Today is Friday (2026-07-31). Wednesday was missed.
       // We pass the schedules to reconcile

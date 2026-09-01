@@ -266,6 +266,11 @@ final exerciseListProvider = FutureProvider<List<ExerciseModel>>((ref) async {
   return await repo.getExerciseDefinitions();
 });
 
+final completedWorkoutsProvider = FutureProvider<List<WorkoutSessionModel>>((ref) async {
+  final repo = ref.watch(repositoryProvider);
+  return await repo.getCompletedWorkouts();
+});
+
 // XP & Gamification State
 final totalXpProvider = FutureProvider<int>((ref) async {
   final repo = ref.watch(repositoryProvider);

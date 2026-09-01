@@ -7,6 +7,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/utils/date_utils.dart';
 import '../../domain/models/models.dart';
 import '../../widgets/gym_widgets.dart';
+import 'muscle_progress_screen.dart' as gym_muscle_progress;
 
 class StatisticsMetrics {
   final int weekCheckins;
@@ -142,6 +143,58 @@ class StatisticsScreen extends ConsumerWidget {
 
               const SizedBox(height: AppSpacing.xl),
 
+              // Muscle Progress Banner
+              InkWell(
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => const gym_muscle_progress.MuscleProgressScreen(),
+                  ));
+                },
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.base),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primaryContainer,
+                        theme.colorScheme.tertiaryContainer,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.accessibility_new_rounded, color: theme.colorScheme.onPrimaryContainer, size: 32),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Interactive Muscle Progress',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Analyze your body training map',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, color: theme.colorScheme.onPrimaryContainer, size: 16),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.xl),
               // Volume Trend section header
               const GymSectionHeader(title: 'Weekly Volume Trend'),
               const SizedBox(height: AppSpacing.sm),

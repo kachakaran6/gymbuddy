@@ -1,3 +1,4 @@
+export 'muscle_progress_models.dart';
 
 enum AttendanceStatus {
   planned,
