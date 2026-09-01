@@ -8,6 +8,8 @@ import '../../core/utils/date_utils.dart';
 import '../../domain/models/models.dart';
 import '../../widgets/gym_widgets.dart';
 import 'muscle_progress_screen.dart' as gym_muscle_progress;
+import 'widgets/activity_heatmap_matrix.dart';
+
 
 class StatisticsMetrics {
   final int weekCheckins;
@@ -192,6 +194,18 @@ class StatisticsScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+              ),
+
+              const SizedBox(height: AppSpacing.xl),
+
+              // 52-Week Consistency & Activity Matrix
+              ref.watch(completedWorkoutsProvider).when(
+                data: (workouts) => ActivityHeatmapMatrix(
+                  workouts: workouts,
+                  attendances: attState.attendances,
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
               ),
 
               const SizedBox(height: AppSpacing.xl),
