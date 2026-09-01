@@ -968,6 +968,22 @@ class GymRepository {
     return templateId;
   }
 
+  Future<void> updateTemplate(String id, String name, List<String> exerciseIds) async {
+    await (db.update(db.workoutTemplates)..where((t) => t.id.equals(id)))
+        .write(WorkoutTemplatesCompanion(name: Value(name)));
+    await (db.delete(db.workoutTemplateExercises)..where((t) => t.templateId.equals(id))).go();
+    for (var i = 0; i < exerciseIds.length; i++) {
+      await db.into(db.workoutTemplateExercises).insert(
+        WorkoutTemplateExercisesCompanion.insert(
+          id: _uuid.v4(),
+          templateId: id,
+          exerciseId: exerciseIds[i],
+          sortOrder: i,
+        ),
+      );
+    }
+  }
+
   Future<void> deleteTemplate(String id) async {
     await (db.delete(db.workoutTemplates)..where((t) => t.id.equals(id))).go();
   }
