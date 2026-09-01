@@ -21,6 +21,9 @@ final repositoryProvider = Provider<GymRepository>((ref) {
   return GymRepository(ref.watch(databaseProvider));
 });
 
+final gymRepositoryProvider = repositoryProvider;
+
+
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return LocalNotificationService();
 });

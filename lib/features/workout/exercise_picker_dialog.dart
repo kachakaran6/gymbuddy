@@ -116,7 +116,7 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
                           MaterialPageRoute(
                             builder: (_) => ExerciseLibraryScreen(
                               onExerciseSelected: (catalogEx) async {
-                                final repo = ref.read(workoutRepositoryProvider);
+                                final repo = ref.read(repositoryProvider);
                                 final existing = await repo.getExerciseDefinitions();
                                 final match = existing
                                     .where((e) => e.name.toLowerCase() == catalogEx.name.toLowerCase())

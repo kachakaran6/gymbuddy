@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../domain/models/models.dart';
 import 'workout_logger_screen.dart';

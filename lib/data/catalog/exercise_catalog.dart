@@ -1,4 +1,4 @@
-﻿import 'catalog_exercise.dart';
+import 'catalog_exercise.dart';
 
 const List<Exercise> kExercises = [
   Exercise(
@@ -8196,6 +8196,13 @@ const List<Exercise> kExercises = [
     ],
   ),
 ];
+
+class ToolMeta {
+  final String id;
+  final String title;
+  final String desc;
+  const ToolMeta(this.id, this.title, this.desc);
+}
 
 const List<ToolMeta> kToolMeta = [
   ToolMeta('rm', '1RM', 'Estimated one-rep max'),

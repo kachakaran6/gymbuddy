@@ -359,10 +359,11 @@ class MuscleProgressScreen extends ConsumerWidget {
       case 'chest':
         return MuscleGroup.chest;
       case 'lats':
+        return MuscleGroup.lats;
       case 'back':
-        return MuscleGroup.back;
+        return MuscleGroup.upperBack;
       case 'quads':
-        return MuscleGroup.quads;
+        return MuscleGroup.quadriceps;
       case 'hamstring':
       case 'hamstrings':
         return MuscleGroup.hamstrings;
@@ -372,7 +373,7 @@ class MuscleProgressScreen extends ConsumerWidget {
         return MuscleGroup.calves;
       case 'shoulders':
       case 'delts':
-        return MuscleGroup.shoulders;
+        return MuscleGroup.frontShoulders;
       case 'biceps':
         return MuscleGroup.biceps;
       case 'triceps':
@@ -381,8 +382,9 @@ class MuscleProgressScreen extends ConsumerWidget {
       case 'forearms':
         return MuscleGroup.forearms;
       case 'abs':
+        return MuscleGroup.core;
       case 'obliques':
-        return MuscleGroup.abs;
+        return MuscleGroup.obliques;
       case 'traps':
       case 'trapezius':
         return MuscleGroup.traps;
@@ -399,10 +401,12 @@ class MuscleProgressScreen extends ConsumerWidget {
         case MuscleGroup.chest:
           res['chest'] = v;
           break;
-        case MuscleGroup.back:
+        case MuscleGroup.lats:
+        case MuscleGroup.upperBack:
+        case MuscleGroup.lowerBack:
           res['lats'] = v;
           break;
-        case MuscleGroup.quads:
+        case MuscleGroup.quadriceps:
           res['quads'] = v;
           break;
         case MuscleGroup.hamstrings:
@@ -414,7 +418,8 @@ class MuscleProgressScreen extends ConsumerWidget {
         case MuscleGroup.calves:
           res['calves'] = v;
           break;
-        case MuscleGroup.shoulders:
+        case MuscleGroup.frontShoulders:
+        case MuscleGroup.rearShoulders:
           res['shoulders'] = v;
           break;
         case MuscleGroup.biceps:
@@ -426,13 +431,14 @@ class MuscleProgressScreen extends ConsumerWidget {
         case MuscleGroup.forearms:
           res['forearm'] = v;
           break;
-        case MuscleGroup.abs:
+        case MuscleGroup.core:
           res['abs'] = v;
+          break;
+        case MuscleGroup.obliques:
+          res['obliques'] = v;
           break;
         case MuscleGroup.traps:
           res['traps'] = v;
-          break;
-        default:
           break;
       }
     }
