@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database/database.dart';
 import '../../data/repositories/repositories.dart';
@@ -5,6 +6,7 @@ import '../notifications/notification_service.dart';
 import '../../domain/models/models.dart';
 import '../../domain/services/streak_calculator.dart';
 import '../../data/services/backup_service.dart';
+import '../services/rest_alarm_service.dart';
 import '../utils/date_utils.dart';
 
 // Singletons
@@ -292,47 +294,83 @@ final templatesProvider = FutureProvider<List<WorkoutTemplateModel>>((ref) async
 class RestTimerState {
   final DateTime? startTime;
   final int initialDuration; // in seconds
+  final int remainingSeconds;
   final bool isRunning;
+  final bool isComplete;
 
   RestTimerState({
     this.startTime,
     this.initialDuration = 60,
+    this.remainingSeconds = 60,
     this.isRunning = false,
+    this.isComplete = false,
   });
 
   RestTimerState copyWith({
     DateTime? startTime,
     int? initialDuration,
+    int? remainingSeconds,
     bool? isRunning,
+    bool? isComplete,
   }) {
     return RestTimerState(
       startTime: startTime ?? this.startTime,
       initialDuration: initialDuration ?? this.initialDuration,
+      remainingSeconds: remainingSeconds ?? this.remainingSeconds,
       isRunning: isRunning ?? this.isRunning,
+      isComplete: isComplete ?? this.isComplete,
     );
   }
 }
 
 class RestTimerNotifier extends StateNotifier<RestTimerState> {
   RestTimerNotifier() : super(RestTimerState());
+  Timer? _ticker;
 
   void startTimer(int seconds) {
-    state = state.copyWith(
+    _ticker?.cancel();
+    state = RestTimerState(
       startTime: DateTime.now(),
       initialDuration: seconds,
+      remainingSeconds: seconds,
       isRunning: true,
+      isComplete: false,
     );
+    _ticker = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (state.remainingSeconds > 1) {
+        state = state.copyWith(remainingSeconds: state.remainingSeconds - 1);
+      } else {
+        timer.cancel();
+        _ticker = null;
+        state = state.copyWith(
+          remainingSeconds: 0,
+          isRunning: false,
+          isComplete: true,
+        );
+        RestAlarmService.instance.playAlarm();
+      }
+    });
   }
 
   void stopTimer() {
-    state = state.copyWith(isRunning: false, startTime: null);
+    _ticker?.cancel();
+    _ticker = null;
+    RestAlarmService.instance.stopAlarm();
+    state = RestTimerState(isRunning: false, remainingSeconds: 0, isComplete: false);
   }
 
   void addTime(int seconds) {
-    if (state.startTime == null) return;
-    // Shift start time back to add more remaining time
-    final newStartTime = state.startTime!.subtract(Duration(seconds: seconds));
-    state = state.copyWith(startTime: newStartTime);
+    final newRemaining = (state.remainingSeconds + seconds).clamp(0, 3600);
+    state = state.copyWith(remainingSeconds: newRemaining, isComplete: false);
+    if (!state.isRunning && newRemaining > 0) {
+      startTimer(newRemaining);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
   }
 }
 

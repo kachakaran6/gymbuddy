@@ -11,6 +11,8 @@ import '../../domain/services/pr_detector.dart';
 import '../../widgets/gym_widgets.dart';
 import 'exercise_picker_dialog.dart';
 import 'workout_summary_screen.dart';
+import 'widgets/rest_timer_bar.dart';
+
 
 class WorkoutLoggerScreen extends ConsumerStatefulWidget {
   const WorkoutLoggerScreen({super.key});
@@ -219,12 +221,10 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
     ThemeData theme,
     WorkoutSessionModel workout,
   ) {
-    final timerState = ref.watch(restTimerProvider);
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (timerState.isRunning) _buildRestTimer(context, ref, timerState, theme),
+        const RestTimerBar(),
         Container(
           padding: const EdgeInsets.all(AppSpacing.base),
           decoration: BoxDecoration(
@@ -257,57 +257,6 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildRestTimer(BuildContext context, WidgetRef ref, RestTimerState state, ThemeData theme) {
-    final now = DateTime.now();
-    final elapsed = now.difference(state.startTime!).inSeconds;
-    final remaining = (state.initialDuration - elapsed).clamp(0, 9999);
-    final isDone = remaining == 0;
-
-    return Container(
-      color: isDone ? Colors.green.withValues(alpha: 0.2) : theme.colorScheme.primary.withValues(alpha: 0.1),
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-      child: Row(
-        children: [
-          Icon(Icons.timer_outlined, color: isDone ? Colors.green : theme.colorScheme.primary),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isDone ? 'Rest Complete!' : 'Resting...',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDone ? Colors.green : theme.colorScheme.primary,
-                  ),
-                ),
-                Text(
-                  isDone ? '0:00' : '${remaining ~/ 60}:${(remaining % 60).toString().padLeft(2, '0')}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.add, size: 20),
-            onPressed: () {
-              ref.read(restTimerProvider.notifier).startTimer(state.initialDuration + 30);
-            },
-            tooltip: '+30s',
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 20),
-            onPressed: () {
-              ref.read(restTimerProvider.notifier).stopTimer();
-            },
-          ),
-        ],
-      ),
     );
   }
 

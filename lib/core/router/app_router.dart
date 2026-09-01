@@ -5,6 +5,7 @@ import '../../features/statistics/statistics_screen.dart';
 import '../../features/calendar/calendar_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
+import '../../features/workout/widgets/rest_timer_bar.dart';
 import '../../widgets/gym_bottom_nav.dart';
 
 enum MainTab { home, history, statistics, calendar, settings }
@@ -76,14 +77,20 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
             SettingsScreen(),
           ],
         ),
-        bottomNavigationBar: GymBottomNav(
-          selectedIndex: _currentTab.index,
-          destinations: _destinations,
-          onDestinationSelected: (index) {
-            setState(() {
-              _currentTab = MainTab.values[index];
-            });
-          },
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const RestTimerBar(),
+            GymBottomNav(
+              selectedIndex: _currentTab.index,
+              destinations: _destinations,
+              onDestinationSelected: (index) {
+                setState(() {
+                  _currentTab = MainTab.values[index];
+                });
+              },
+            ),
+          ],
         ),
       ),
     );
