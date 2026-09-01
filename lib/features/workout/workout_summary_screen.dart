@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/models/models.dart';
 import '../../core/utils/date_utils.dart';
+import '../../core/services/play_services.dart';
 
 class WorkoutSummaryScreen extends StatelessWidget {
   final WorkoutSessionModel workout;
@@ -120,7 +121,10 @@ class WorkoutSummaryScreen extends StatelessWidget {
               ],
 
               FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  PlayServices.requestReview();
+                  Navigator.of(context).pop();
+                },
                 child: const Text('Back to Home'),
               ),
             ],
