@@ -13,12 +13,12 @@ class BodyFatScreen extends StatefulWidget {
 class _BodyFatScreenState extends State<BodyFatScreen> {
   static const _calc = GymCalculatorService();
 
-  double _heightCm = 178.0;
-  double _weightKg = 76.0;
-  double _waistCm = 84.0;
+  bool _isMale = true;
+  double _heightCm = 175.0;
+  double _weightKg = 75.0;
+  double _waistCm = 82.0;
   double _neckCm = 38.0;
   double _hipCm = 95.0;
-  bool _isMale = true;
 
   late BodyFatResult _result;
 
@@ -30,55 +30,98 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
 
   void _recalculate() {
     _result = _calc.calculateBodyFat(
+      isMale: _isMale,
       heightCm: _heightCm,
+      weightKg: _weightKg,
       waistCm: _waistCm,
       neckCm: _neckCm,
       hipCm: _hipCm,
-      isMale: _isMale,
-      weightKg: _weightKg,
+    );
+  }
+
+  void _showDirectInputDialog({
+    required String title,
+    required String initialValue,
+    required String suffix,
+    required void Function(double) onSave,
+  }) {
+    final controller = TextEditingController(text: initialValue);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          autofocus: true,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            suffixText: suffix,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text);
+              if (val != null && val > 0) {
+                HapticFeedback.selectionClick();
+                onSave(val);
+                _recalculate();
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Body Fat % (US Navy)'),
+        title: const Text('Body Fat Calculator (U.S. Navy)'),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Body Fat Hero Result
+            // Body Fat % Hero Banner
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFF6366F1),
-                    const Color(0xFF4F46E5),
+                    theme.colorScheme.primary,
+                    theme.colorScheme.primary.withValues(alpha: 0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
-                    blurRadius: 14,
-                    offset: const Offset(0, 5),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     'ESTIMATED BODY FAT',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 2,
@@ -87,8 +130,8 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
                   const SizedBox(height: 6),
                   Text(
                     '${_result.bodyFatPercentage}%',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: theme.colorScheme.onPrimary,
                       fontSize: 52,
                       fontWeight: FontWeight.w900,
                       height: 1,
@@ -96,7 +139,7 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
@@ -109,7 +152,7 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
                   const SizedBox(height: 14),
                   Text(
                     'Ideal Fitness Range: ${_result.idealRangeMin}% - ${_result.idealRangeMax}%',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: theme.colorScheme.onPrimary.withValues(alpha: 0.85), fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -124,9 +167,9 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                      color: theme.colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                      border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,9 +187,9 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                      color: theme.colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                      border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,9 +211,9 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
               ),
               child: Column(
                 children: [
@@ -195,16 +238,76 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
                     ],
                   ),
                   const Divider(height: 24),
-                  _buildInputRow('Height', '$_heightCm cm', () => _adjust('h', -1), () => _adjust('h', 1)),
+                  _buildInputRow(
+                    label: 'Height',
+                    value: '${_heightCm.toStringAsFixed(0)} cm',
+                    onDec: () => _adjust('h', -1),
+                    onInc: () => _adjust('h', 1),
+                    onTapValue: () => _showDirectInputDialog(
+                      title: 'Enter Height (cm)',
+                      initialValue: _heightCm.toStringAsFixed(0),
+                      suffix: 'cm',
+                      onSave: (v) => setState(() => _heightCm = v.clamp(100.0, 250.0)),
+                    ),
+                    theme: theme,
+                  ),
                   const Divider(height: 24),
-                  _buildInputRow('Weight', '$_weightKg kg', () => _adjust('w', -1), () => _adjust('w', 1)),
+                  _buildInputRow(
+                    label: 'Weight',
+                    value: '${_weightKg.toStringAsFixed(1)} kg',
+                    onDec: () => _adjust('w', -1),
+                    onInc: () => _adjust('w', 1),
+                    onTapValue: () => _showDirectInputDialog(
+                      title: 'Enter Weight (kg)',
+                      initialValue: _weightKg.toStringAsFixed(1),
+                      suffix: 'kg',
+                      onSave: (v) => setState(() => _weightKg = v.clamp(30.0, 300.0)),
+                    ),
+                    theme: theme,
+                  ),
                   const Divider(height: 24),
-                  _buildInputRow('Waist Circumference', '$_waistCm cm', () => _adjust('waist', -0.5), () => _adjust('waist', 0.5)),
+                  _buildInputRow(
+                    label: 'Waist Circumference',
+                    value: '${_waistCm.toStringAsFixed(1)} cm',
+                    onDec: () => _adjust('waist', -0.5),
+                    onInc: () => _adjust('waist', 0.5),
+                    onTapValue: () => _showDirectInputDialog(
+                      title: 'Enter Waist (cm)',
+                      initialValue: _waistCm.toStringAsFixed(1),
+                      suffix: 'cm',
+                      onSave: (v) => setState(() => _waistCm = v.clamp(40.0, 180.0)),
+                    ),
+                    theme: theme,
+                  ),
                   const Divider(height: 24),
-                  _buildInputRow('Neck Circumference', '$_neckCm cm', () => _adjust('neck', -0.5), () => _adjust('neck', 0.5)),
+                  _buildInputRow(
+                    label: 'Neck Circumference',
+                    value: '${_neckCm.toStringAsFixed(1)} cm',
+                    onDec: () => _adjust('neck', -0.5),
+                    onInc: () => _adjust('neck', 0.5),
+                    onTapValue: () => _showDirectInputDialog(
+                      title: 'Enter Neck (cm)',
+                      initialValue: _neckCm.toStringAsFixed(1),
+                      suffix: 'cm',
+                      onSave: (v) => setState(() => _neckCm = v.clamp(20.0, 80.0)),
+                    ),
+                    theme: theme,
+                  ),
                   if (!_isMale) ...[
                     const Divider(height: 24),
-                    _buildInputRow('Hip Circumference', '$_hipCm cm', () => _adjust('hip', -0.5), () => _adjust('hip', 0.5)),
+                    _buildInputRow(
+                      label: 'Hip Circumference',
+                      value: '${_hipCm.toStringAsFixed(1)} cm',
+                      onDec: () => _adjust('hip', -0.5),
+                      onInc: () => _adjust('hip', 0.5),
+                      onTapValue: () => _showDirectInputDialog(
+                        title: 'Enter Hip (cm)',
+                        initialValue: _hipCm.toStringAsFixed(1),
+                        suffix: 'cm',
+                        onSave: (v) => setState(() => _hipCm = v.clamp(40.0, 180.0)),
+                      ),
+                      theme: theme,
+                    ),
                   ],
                 ],
               ),
@@ -227,7 +330,14 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
     });
   }
 
-  Widget _buildInputRow(String label, String value, VoidCallback onDec, VoidCallback onInc) {
+  Widget _buildInputRow({
+    required String label,
+    required String value,
+    required VoidCallback onDec,
+    required VoidCallback onInc,
+    required VoidCallback onTapValue,
+    required ThemeData theme,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -240,10 +350,22 @@ class _BodyFatScreenState extends State<BodyFatScreen> {
               icon: const Icon(Icons.remove_rounded, size: 18),
               visualDensity: VisualDensity.compact,
             ),
-            Container(
-              constraints: const BoxConstraints(minWidth: 70),
-              alignment: Alignment.center,
-              child: Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            GestureDetector(
+              onTap: onTapValue,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                constraints: const BoxConstraints(minWidth: 70),
+                alignment: Alignment.center,
+                child: Text(
+                  value,
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: theme.colorScheme.primary),
+                ),
+              ),
             ),
             IconButton.filledTonal(
               onPressed: onInc,

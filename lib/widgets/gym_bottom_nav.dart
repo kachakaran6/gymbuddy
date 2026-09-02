@@ -33,10 +33,11 @@ class GymBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
-    final navBg = isDark ? const Color(0xFF1C1C1C) : Colors.white;
-    final unselectedColor = theme.colorScheme.onSurfaceVariant;
+    final navBg = isDark ? const Color(0xFF161616) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE5E5E5);
+    final accent = theme.colorScheme.primary;
+    final unselectedColor = isDark ? const Color(0xFF888888) : const Color(0xFF666666);
 
     return SafeArea(
       child: Padding(
@@ -51,6 +52,7 @@ class GymBottomNav extends StatelessWidget {
           decoration: BoxDecoration(
             color: navBg,
             borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(color: borderColor, width: 1),
             boxShadow: AppShadows.floatingNav,
           ),
           child: Row(

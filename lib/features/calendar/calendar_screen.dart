@@ -85,6 +85,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
                   return _CalendarCell(
                     dayNum: dayNum,
+                    cellDate: cellDate,
                     status: status,
                     isToday: isToday,
                     isFuture: isFuture,
@@ -92,6 +93,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     isDark: isDark,
                     accentColor: theme.colorScheme.primary,
                     monthName: _monthName(_focusedMonth.month),
+                    onTap: () => _showDayDetails(
+                      context,
+                      ref,
+                      cellDate,
+                      status,
+                      isPlannedDay,
+                      isToday,
+                      isFuture,
+                    ),
                   );
                 },
               ),
@@ -202,10 +212,181 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     ];
     return names[month - 1];
   }
+
+  void _showDayDetails(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime date,
+    AttendanceStatus? status,
+    bool isPlannedDay,
+    bool isToday,
+    bool isFuture,
+  ) {
+    final theme = Theme.of(context);
+    final dateStr = GymDateUtils.formatDate(date);
+    final workouts = ref.read(completedWorkoutsProvider).value ?? [];
+    final dayWorkouts = workouts.where((w) {
+      return w.startedAt.year == date.year &&
+          w.startedAt.month == date.month &&
+          w.startedAt.day == date.day;
+    }).toList();
+
+    String statusLabel = 'Rest Day';
+    Color statusColor = Colors.grey;
+    IconData statusIcon = Icons.bedtime_outlined;
+
+    if (status == AttendanceStatus.checkedIn || dayWorkouts.isNotEmpty) {
+      statusLabel = 'Workout Completed!';
+      statusColor = const Color(0xFF16A34A);
+      statusIcon = Icons.check_circle_rounded;
+    } else if (status == AttendanceStatus.missed) {
+      statusLabel = 'Missed Session';
+      statusColor = Colors.red;
+      statusIcon = Icons.cancel_outlined;
+    } else if (isFuture && isPlannedDay) {
+      statusLabel = 'Planned Workout Day';
+      statusColor = theme.colorScheme.primary;
+      statusIcon = Icons.fitness_center_rounded;
+    } else if (isToday) {
+      statusLabel = isPlannedDay ? 'Gym Day Planned Today' : 'Today (Rest Day)';
+      statusColor = theme.colorScheme.primary;
+      statusIcon = Icons.today_rounded;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Date & Status Header
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(statusIcon, color: statusColor, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            dateStr,
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                              color: statusColor,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Completed Workouts List on this day
+                if (dayWorkouts.isNotEmpty) ...[
+                  Text(
+                    'Completed Workouts (${dayWorkouts.length})',
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  ...dayWorkouts.map((w) {
+                    final title = (w.notes != null && w.notes!.isNotEmpty)
+                        ? w.notes!
+                        : (w.exercises.isNotEmpty && w.exercises.first.exercise != null
+                            ? w.exercises.first.exercise!.name
+                            : 'Workout Session');
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.fitness_center_rounded, color: theme.colorScheme.primary, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                Text(
+                                  '${w.exercises.length} Exercises • ${w.totalCompletedSets} Sets • ${GymDateUtils.formatDuration(w.durationSeconds)}',
+                                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ] else ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      isFuture
+                          ? 'This date is in the future. Keep up your routine!'
+                          : (status == AttendanceStatus.missed
+                              ? 'A scheduled workout was missed on this day.'
+                              : 'No workout logged on this day.'),
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _CalendarCell extends StatelessWidget {
   final int dayNum;
+  final DateTime cellDate;
   final AttendanceStatus? status;
   final bool isToday;
   final bool isFuture;
@@ -213,9 +394,11 @@ class _CalendarCell extends StatelessWidget {
   final bool isDark;
   final Color accentColor;
   final String monthName;
+  final VoidCallback onTap;
 
   const _CalendarCell({
     required this.dayNum,
+    required this.cellDate,
     required this.status,
     required this.isToday,
     required this.isFuture,
@@ -223,6 +406,7 @@ class _CalendarCell extends StatelessWidget {
     required this.isDark,
     required this.accentColor,
     required this.monthName,
+    required this.onTap,
   });
 
   @override
@@ -256,43 +440,50 @@ class _CalendarCell extends StatelessWidget {
 
     return Semantics(
       label: '$dayNum $monthName',
-      child: AnimatedContainer(
-        duration: AppDurations.fast,
-        decoration: BoxDecoration(
-          color: bgColor ??
-              (isDark
-                  ? const Color(0xFF161616)
-                  : const Color(0xFFF5F5F5)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.sm),
-          border: hasBorder
-              ? Border.all(color: accentColor, width: 2)
-              : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '$dayNum',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight:
-                    isToday ? FontWeight.w800 : FontWeight.w500,
-                color: hasBorder && dotColor == null
-                    ? accentColor
-                    : textColor,
-              ),
+          child: AnimatedContainer(
+            duration: AppDurations.fast,
+            decoration: BoxDecoration(
+              color: bgColor ??
+                  (isDark
+                      ? const Color(0xFF161616)
+                      : const Color(0xFFF5F5F5)),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: hasBorder
+                  ? Border.all(color: accentColor, width: 2)
+                  : null,
             ),
-            const SizedBox(height: 2),
-            // Status dot
-            Container(
-              width: 5,
-              height: 5,
-              decoration: BoxDecoration(
-                color: dotColor ?? Colors.transparent,
-                shape: BoxShape.circle,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '$dayNum',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight:
+                        isToday ? FontWeight.w800 : FontWeight.w500,
+                    color: hasBorder && dotColor == null
+                        ? accentColor
+                        : textColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                // Status dot
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: dotColor ?? Colors.transparent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

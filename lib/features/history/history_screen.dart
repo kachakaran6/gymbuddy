@@ -11,23 +11,16 @@ class HistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(repositoryProvider);
+    final workoutsAsync = ref.watch(completedWorkoutsProvider);
     final prefs = ref.watch(userPreferencesProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('History'),
+        title: const Text('Workout History'),
         centerTitle: true,
       ),
-      body: FutureBuilder<List<WorkoutSessionModel>>(
-        future: repo.getCompletedWorkouts(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final workouts = snapshot.data ?? [];
-
+      body: workoutsAsync.when(
+        data: (workouts) {
           if (workouts.isEmpty) {
             return const GymEmptyState(
               icon: Icons.history_rounded,
@@ -54,6 +47,8 @@ class HistoryScreen extends ConsumerWidget {
             },
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('Error loading history: $e')),
       ),
     );
   }

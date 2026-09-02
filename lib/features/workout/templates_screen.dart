@@ -91,6 +91,58 @@ class TemplatesScreen extends ConsumerWidget {
     }
   }
 
+  void _loadStarterHomeWorkouts(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(repositoryProvider);
+    final allDefs = await repo.getExerciseDefinitions();
+    final defMap = {for (var d in allDefs) d.name.toLowerCase(): d};
+
+    Future<String> getOrAdd(String name) async {
+      final found = defMap[name.toLowerCase()];
+      if (found != null) return found.id;
+      final created = await repo.createCustomExercise(name, 'Home Calisthenics');
+      return created.id;
+    }
+
+    // 1. Home Calisthenics
+    final calIds = [
+      await getOrAdd('Standard Push-Up'),
+      await getOrAdd('Bodyweight Air Squat'),
+      await getOrAdd('Chair / Bench Dips'),
+      await getOrAdd('Forearm Plank'),
+      await getOrAdd('Inverted Row (Table / Bar)'),
+      await getOrAdd('Explosive Jump Squat'),
+    ];
+    await repo.createTemplate('Home Calisthenics (Zero Equipment)', calIds);
+
+    // 2. Home Dumbbell Power
+    final dbIds = [
+      await getOrAdd('Dumbbell Floor Press'),
+      await getOrAdd('Dumbbell Goblet Squat'),
+      await getOrAdd('Dumbbell Bent-Over Row'),
+      await getOrAdd('Dumbbell Overhead Shoulder Press'),
+      await getOrAdd('Dumbbell Bicep Curl'),
+      await getOrAdd('Overhead Dumbbell Tricep Extension'),
+    ];
+    await repo.createTemplate('Home Dumbbell Full Body', dbIds);
+
+    // 3. Core & Abs
+    final absIds = [
+      await getOrAdd('Forearm Plank'),
+      await getOrAdd('Bicycle Crunches'),
+      await getOrAdd('Mountain Climbers'),
+      await getOrAdd('Russian Twists'),
+      await getOrAdd('Lying Leg Raises'),
+    ];
+    await repo.createTemplate('Home Core & Abs Blitz', absIds);
+
+    ref.invalidate(templatesProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Added 3 Home Workout routines!')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -142,6 +194,12 @@ class TemplatesScreen extends ConsumerWidget {
                       icon: const Icon(Icons.bolt_rounded),
                       label: const Text('Load Starter PPL Split'),
                       onPressed: () => _loadStarterPPL(context, ref),
+                    ),
+                    const SizedBox(height: 10),
+                    FilledButton.tonalIcon(
+                      icon: const Icon(Icons.home_rounded),
+                      label: const Text('Load Home Workout Routines'),
+                      onPressed: () => _loadStarterHomeWorkouts(context, ref),
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(

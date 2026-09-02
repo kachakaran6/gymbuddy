@@ -82,7 +82,6 @@ class GymToolsHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -158,10 +157,10 @@ class GymToolsHubScreen extends StatelessWidget {
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: Material(
-                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                  color: theme.colorScheme.surfaceContainer,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                    side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(

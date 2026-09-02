@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 enum MusclePeriod {
   week,
@@ -15,7 +16,7 @@ extension MusclePeriodExt on MusclePeriod {
       case MusclePeriod.month:
         return 'Month';
       case MusclePeriod.threeMonths:
-        return '3 Months';
+        return '3 Mo';
       case MusclePeriod.allTime:
         return 'All Time';
     }
@@ -48,19 +49,58 @@ class PeriodFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    final theme = Theme.of(context);
+
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: SegmentedButton<MusclePeriod>(
-        segments: MusclePeriod.values.map((p) {
-          return ButtonSegment<MusclePeriod>(
-            value: p,
-            label: Text(p.label),
-          );
-        }).toList(),
-        selected: {selectedPeriod},
-        onSelectionChanged: (set) => onPeriodChanged(set.first),
-        showSelectedIcon: false,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: MusclePeriod.values.map((p) {
+            final isSelected = p == selectedPeriod;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  onPeriodChanged(p);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(100),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ]
+                        : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    p.label,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: isSelected
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

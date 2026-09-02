@@ -37,11 +37,12 @@ class _ExerciseLibraryScreenState extends State<ExerciseLibraryScreen> {
 
   final _equipments = const [
     'All',
-    'Barbell',
+    'Home Workout',
+    'Bodyweight',
     'Dumbbell',
+    'Barbell',
     'Machine',
     'Cable',
-    'Bodyweight',
     'Bands',
     'Kettlebell',
   ];
@@ -80,7 +81,9 @@ class _ExerciseLibraryScreenState extends State<ExerciseLibraryScreen> {
 
       // Equipment filter
       if (_selectedEquipment != 'All') {
-        if (!ex.equipment.toLowerCase().contains(_selectedEquipment.toLowerCase())) {
+        if (_selectedEquipment == 'Home Workout') {
+          if (!ex.isHomeExercise) return false;
+        } else if (!ex.equipment.toLowerCase().contains(_selectedEquipment.toLowerCase())) {
           return false;
         }
       }

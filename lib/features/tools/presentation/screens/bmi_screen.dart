@@ -33,6 +33,50 @@ class _BmiScreenState extends State<BmiScreen> {
     );
   }
 
+  void _showDirectInputDialog({
+    required String title,
+    required String initialValue,
+    required String suffix,
+    required void Function(double) onSave,
+  }) {
+    final controller = TextEditingController(text: initialValue);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          autofocus: true,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            suffixText: suffix,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text);
+              if (val != null && val > 0) {
+                HapticFeedback.selectionClick();
+                onSave(val);
+                _recalculate();
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Color _getBmiColor(double bmi) {
     if (bmi < 18.5) return const Color(0xFF3B82F6); // Underweight: Blue
     if (bmi < 25.0) return const Color(0xFF10B981); // Normal: Green
@@ -43,7 +87,6 @@ class _BmiScreenState extends State<BmiScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final categoryColor = _getBmiColor(_result.bmi);
 
     return Scaffold(
@@ -63,7 +106,7 @@ class _BmiScreenState extends State<BmiScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
                     color: categoryColor.withValues(alpha: 0.3),
@@ -115,9 +158,9 @@ class _BmiScreenState extends State<BmiScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,7 +169,7 @@ class _BmiScreenState extends State<BmiScreen> {
                     children: [
                       Icon(Icons.health_and_safety_outlined, size: 20, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
-                      Text('Ideal Body Weight Benchmarks', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                      Text('Ideal Body Weight Benchmarks', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -145,9 +188,9 @@ class _BmiScreenState extends State<BmiScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
               ),
               child: Column(
                 children: [
@@ -172,9 +215,33 @@ class _BmiScreenState extends State<BmiScreen> {
                     ],
                   ),
                   const Divider(height: 24),
-                  _buildInputRow('Height', '$_heightCm cm', () => _adjustHeight(-1), () => _adjustHeight(1)),
+                  _buildInputRow(
+                    label: 'Height',
+                    value: '${_heightCm.toStringAsFixed(0)} cm',
+                    onDec: () => _adjustHeight(-1),
+                    onInc: () => _adjustHeight(1),
+                    onTapValue: () => _showDirectInputDialog(
+                      title: 'Enter Height (cm)',
+                      initialValue: _heightCm.toStringAsFixed(0),
+                      suffix: 'cm',
+                      onSave: (v) => setState(() => _heightCm = v.clamp(100.0, 250.0)),
+                    ),
+                    theme: theme,
+                  ),
                   const Divider(height: 24),
-                  _buildInputRow('Weight', '$_weightKg kg', () => _adjustWeight(-1), () => _adjustWeight(1)),
+                  _buildInputRow(
+                    label: 'Weight',
+                    value: '${_weightKg.toStringAsFixed(1)} kg',
+                    onDec: () => _adjustWeight(-1),
+                    onInc: () => _adjustWeight(1),
+                    onTapValue: () => _showDirectInputDialog(
+                      title: 'Enter Weight (kg)',
+                      initialValue: _weightKg.toStringAsFixed(1),
+                      suffix: 'kg',
+                      onSave: (v) => setState(() => _weightKg = v.clamp(30.0, 300.0)),
+                    ),
+                    theme: theme,
+                  ),
                 ],
               ),
             ),
@@ -210,7 +277,14 @@ class _BmiScreenState extends State<BmiScreen> {
     );
   }
 
-  Widget _buildInputRow(String label, String value, VoidCallback onDec, VoidCallback onInc) {
+  Widget _buildInputRow({
+    required String label,
+    required String value,
+    required VoidCallback onDec,
+    required VoidCallback onInc,
+    required VoidCallback onTapValue,
+    required ThemeData theme,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -223,10 +297,22 @@ class _BmiScreenState extends State<BmiScreen> {
               icon: const Icon(Icons.remove_rounded, size: 18),
               visualDensity: VisualDensity.compact,
             ),
-            Container(
-              constraints: const BoxConstraints(minWidth: 70),
-              alignment: Alignment.center,
-              child: Text(value, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            GestureDetector(
+              onTap: onTapValue,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                constraints: const BoxConstraints(minWidth: 70),
+                alignment: Alignment.center,
+                child: Text(
+                  value,
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: theme.colorScheme.primary),
+                ),
+              ),
             ),
             IconButton.filledTonal(
               onPressed: onInc,

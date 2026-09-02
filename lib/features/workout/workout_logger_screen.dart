@@ -439,14 +439,28 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
           ...workoutEx.sets.asMap().entries.map((entry) {
             final idx = entry.key;
             final setModel = entry.value;
-            return _buildSetRow(
-              context,
-              ref,
-              theme,
-              workoutEx.id,
-              idx + 1,
-              setModel,
-              weightUnit,
+            return _WorkoutSetRowItem(
+              key: ValueKey(setModel.id),
+              setNum: idx + 1,
+              setModel: setModel,
+              weightUnit: weightUnit,
+              onUpdateSet: (updated) {
+                ref.read(activeWorkoutProvider.notifier).updateSet(updated);
+              },
+              onDeleteSet: () {
+                ref.read(activeWorkoutProvider.notifier).deleteSet(setModel.id);
+              },
+              onCompleteSet: (isCompleted) {
+                ref.read(activeWorkoutProvider.notifier).updateSet(
+                  setModel.copyWith(
+                    completedAt: isCompleted ? DateTime.now() : null,
+                  ),
+                );
+                if (isCompleted) {
+                  HapticFeedback.lightImpact();
+                  ref.read(restTimerProvider.notifier).startTimer(60);
+                }
+              },
             );
           }),
 
@@ -455,174 +469,16 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
             padding:
                 const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
             child: TextButton.icon(
-              icon: Icon(Icons.add, size: 16, color: theme.colorScheme.primary),
+              icon: Icon(Icons.add_rounded, size: 18, color: theme.colorScheme.primary),
               label: Text(
                 'Add Set',
-                style: TextStyle(color: theme.colorScheme.primary),
+                style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
               ),
               onPressed: () {
+                HapticFeedback.selectionClick();
                 ref.read(activeWorkoutProvider.notifier).addSet(workoutEx.id);
               },
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSetRow(
-    BuildContext context,
-    WidgetRef ref,
-    ThemeData theme,
-    String workoutExerciseId,
-    int setNum,
-    WorkoutSetModel setModel,
-    String weightUnit,
-  ) {
-    final weightVal = setModel.weightKg != null
-        ? GymDateUtils.convertWeight(setModel.weightKg!, weightUnit)
-            .toStringAsFixed(1)
-        : '';
-    final repsVal = setModel.reps?.toString() ?? '';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.base,
-        vertical: AppSpacing.xs,
-      ),
-      child: Row(
-        children: [
-          // Set number avatar
-          SizedBox(
-            width: 36,
-            child: CircleAvatar(
-              radius: 13,
-              backgroundColor:
-                  theme.colorScheme.primary.withValues(alpha: 0.12),
-              child: Text(
-                '$setNum',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-            ),
-          ),
-          // Set type dropdown
-          SizedBox(
-            width: 84,
-            child: DropdownButton<SetType>(
-              isExpanded: true,
-              isDense: true,
-              value: setModel.setType,
-              underline: const SizedBox(),
-              items: SetType.values.map((st) {
-                return DropdownMenuItem(
-                  value: st,
-                  child: Text(
-                    st.name[0].toUpperCase() + st.name.substring(1),
-                    style: const TextStyle(fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }).toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  ref
-                      .read(activeWorkoutProvider.notifier)
-                      .updateSet(setModel.copyWith(setType: val));
-                }
-              },
-            ),
-          ),
-          // Weight input
-          Expanded(
-            child: TextField(
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                hintText: weightUnit,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.sm,
-                ),
-                border: const OutlineInputBorder(),
-              ),
-              controller: TextEditingController(text: weightVal)
-                ..selection =
-                    TextSelection.collapsed(offset: weightVal.length),
-              onChanged: (val) {
-                final doubleVal = double.tryParse(val);
-                if (doubleVal != null) {
-                  final kgVal =
-                      GymDateUtils.toCanonicalKg(doubleVal, weightUnit);
-                  ref
-                      .read(activeWorkoutProvider.notifier)
-                      .updateSet(setModel.copyWith(weightKg: kgVal));
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          // Reps input
-          Expanded(
-            child: TextField(
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'Reps',
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.sm,
-                ),
-                border: OutlineInputBorder(),
-              ),
-              controller: TextEditingController(text: repsVal)
-                ..selection =
-                    TextSelection.collapsed(offset: repsVal.length),
-              onChanged: (val) {
-                final intVal = int.tryParse(val);
-                if (intVal != null) {
-                  ref
-                      .read(activeWorkoutProvider.notifier)
-                      .updateSet(setModel.copyWith(reps: intVal));
-                }
-              },
-            ),
-          ),
-          // Delete set
-          SizedBox(
-            width: 36,
-            child: IconButton(
-              icon: Icon(
-                Icons.close_rounded,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              onPressed: () {
-                ref
-                    .read(activeWorkoutProvider.notifier)
-                    .deleteSet(setModel.id);
-              },
-            ),
-          ),
-          // Complete Set Checkbox
-          Checkbox(
-            value: setModel.completedAt != null,
-            activeColor: Colors.green,
-            onChanged: (val) {
-              final isCompleted = val == true;
-              ref.read(activeWorkoutProvider.notifier).updateSet(
-                setModel.copyWith(
-                  completedAt: isCompleted ? DateTime.now() : null,
-                ),
-              );
-              if (isCompleted) {
-                ref.read(restTimerProvider.notifier).startTimer(60);
-              }
-            },
           ),
         ],
       ),
@@ -676,5 +532,260 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
         ),
       );
     }
+  }
+}
+
+class _WorkoutSetRowItem extends StatefulWidget {
+  final int setNum;
+  final WorkoutSetModel setModel;
+  final String weightUnit;
+  final ValueChanged<WorkoutSetModel> onUpdateSet;
+  final VoidCallback onDeleteSet;
+  final ValueChanged<bool> onCompleteSet;
+
+  const _WorkoutSetRowItem({
+    super.key,
+    required this.setNum,
+    required this.setModel,
+    required this.weightUnit,
+    required this.onUpdateSet,
+    required this.onDeleteSet,
+    required this.onCompleteSet,
+  });
+
+  @override
+  State<_WorkoutSetRowItem> createState() => _WorkoutSetRowItemState();
+}
+
+class _WorkoutSetRowItemState extends State<_WorkoutSetRowItem> {
+  late final TextEditingController _weightCtrl;
+  late final TextEditingController _repsCtrl;
+  final FocusNode _weightFocus = FocusNode();
+  final FocusNode _repsFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    final wVal = widget.setModel.weightKg != null
+        ? GymDateUtils.convertWeight(widget.setModel.weightKg!, widget.weightUnit).toStringAsFixed(1)
+        : '';
+    final rVal = widget.setModel.reps?.toString() ?? '';
+    _weightCtrl = TextEditingController(text: wVal);
+    _repsCtrl = TextEditingController(text: rVal);
+  }
+
+  @override
+  void didUpdateWidget(covariant _WorkoutSetRowItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_weightFocus.hasFocus) {
+      final wVal = widget.setModel.weightKg != null
+          ? GymDateUtils.convertWeight(widget.setModel.weightKg!, widget.weightUnit).toStringAsFixed(1)
+          : '';
+      if (_weightCtrl.text != wVal) {
+        _weightCtrl.text = wVal;
+      }
+    }
+    if (!_repsFocus.hasFocus) {
+      final rVal = widget.setModel.reps?.toString() ?? '';
+      if (_repsCtrl.text != rVal) {
+        _repsCtrl.text = rVal;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _weightCtrl.dispose();
+    _repsCtrl.dispose();
+    _weightFocus.dispose();
+    _repsFocus.dispose();
+    super.dispose();
+  }
+
+  Color _getSetTypeBadgeColor(SetType type, ThemeData theme) {
+    switch (type) {
+      case SetType.warmup:
+        return Colors.amber;
+      case SetType.drop:
+        return Colors.purple;
+      case SetType.normal:
+        return theme.colorScheme.primary;
+    }
+  }
+
+  String _getSetTypeAbbr(SetType type) {
+    switch (type) {
+      case SetType.warmup:
+        return 'W';
+      case SetType.drop:
+        return 'D';
+      case SetType.normal:
+        return '${widget.setNum}';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isCompleted = widget.setModel.completedAt != null;
+    final badgeColor = _getSetTypeBadgeColor(widget.setModel.setType, theme);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.base,
+        vertical: 4,
+      ),
+      color: isCompleted ? Colors.green.withValues(alpha: 0.04) : Colors.transparent,
+      child: Row(
+        children: [
+          // Set indicator / badge
+          PopupMenuButton<SetType>(
+            tooltip: 'Change set type',
+            initialValue: widget.setModel.setType,
+            onSelected: (val) {
+              HapticFeedback.selectionClick();
+              widget.onUpdateSet(widget.setModel.copyWith(setType: val));
+            },
+            itemBuilder: (ctx) => SetType.values.map((st) {
+              return PopupMenuItem(
+                value: st,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: _getSetTypeBadgeColor(st, theme),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(st.name[0].toUpperCase() + st.name.substring(1)),
+                  ],
+                ),
+              );
+            }).toList(),
+            child: Container(
+              width: 30,
+              height: 28,
+              decoration: BoxDecoration(
+                color: badgeColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                _getSetTypeAbbr(widget.setModel.setType),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: badgeColor,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Weight input
+          Expanded(
+            child: SizedBox(
+              height: 38,
+              child: TextField(
+                controller: _weightCtrl,
+                focusNode: _weightFocus,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: widget.weightUnit,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: theme.dividerColor),
+                  ),
+                ),
+                onChanged: (val) {
+                  final doubleVal = double.tryParse(val);
+                  if (doubleVal != null) {
+                    final kgVal = GymDateUtils.toCanonicalKg(doubleVal, widget.weightUnit);
+                    widget.onUpdateSet(widget.setModel.copyWith(weightKg: kgVal));
+                  }
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Reps input
+          Expanded(
+            child: SizedBox(
+              height: 38,
+              child: TextField(
+                controller: _repsCtrl,
+                focusNode: _repsFocus,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Reps',
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: theme.dividerColor),
+                  ),
+                ),
+                onChanged: (val) {
+                  final intVal = int.tryParse(val);
+                  if (intVal != null) {
+                    widget.onUpdateSet(widget.setModel.copyWith(reps: intVal));
+                  }
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+
+          // Delete set
+          IconButton(
+            icon: Icon(
+              Icons.remove_circle_outline_rounded,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              widget.onDeleteSet();
+            },
+          ),
+
+          // Complete set Checkbox / Check button
+          GestureDetector(
+            onTap: () {
+              widget.onCompleteSet(!isCompleted);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: isCompleted ? Colors.green : theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isCompleted ? Colors.green : theme.dividerColor,
+                  width: 1.5,
+                ),
+              ),
+              child: isCompleted
+                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 20)
+                  : null,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

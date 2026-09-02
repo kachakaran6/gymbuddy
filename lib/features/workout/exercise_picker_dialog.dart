@@ -32,6 +32,7 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
 
   static const _categories = [
     'All',
+    'Home Workout',
     'Favorites',
     'Custom',
     'Chest',
@@ -92,54 +93,65 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.lg,
-                  AppSpacing.base,
-                  AppSpacing.base,
+                  AppSpacing.sm,
+                  AppSpacing.md,
                   0,
                 ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Text(
-                        'Select Exercise',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                    Text(
+                      'Select Exercise',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    FilledButton.tonalIcon(
-                      icon: const Icon(Icons.menu_book_rounded, size: 16),
-                      label: const Text('500+ Library'),
-                      style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
-                      onPressed: () async {
-                        final navigator = Navigator.of(context);
-                        await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ExerciseLibraryScreen(
-                              onExerciseSelected: (catalogEx) async {
-                                final repo = ref.read(repositoryProvider);
-                                final existing = await repo.getExerciseDefinitions();
-                                final match = existing
-                                    .where((e) => e.name.toLowerCase() == catalogEx.name.toLowerCase())
-                                    .firstOrNull;
-                                final resultEx = match ??
-                                    await repo.createCustomExercise(catalogEx.name, catalogEx.category);
-                                ref.invalidate(exerciseListProvider);
-                                navigator.pop(resultEx);
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    TextButton.icon(
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Custom'),
-                      onPressed: () => _showCreateCustomDialog(context),
-                    ),
                     IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close_rounded),
                       onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Quick Actions Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ActionChip(
+                        avatar: Icon(Icons.menu_book_rounded, size: 16, color: theme.colorScheme.primary),
+                        label: const Text('500+ Library', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                        onPressed: () async {
+                          final navigator = Navigator.of(context);
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ExerciseLibraryScreen(
+                                onExerciseSelected: (catalogEx) async {
+                                  final repo = ref.read(repositoryProvider);
+                                  final existing = await repo.getExerciseDefinitions();
+                                  final match = existing
+                                      .where((e) => e.name.toLowerCase() == catalogEx.name.toLowerCase())
+                                      .firstOrNull;
+                                  final resultEx = match ??
+                                      await repo.createCustomExercise(catalogEx.name, catalogEx.category);
+                                  ref.invalidate(exerciseListProvider);
+                                  navigator.pop(resultEx);
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ActionChip(
+                        avatar: Icon(Icons.add_rounded, size: 16, color: theme.colorScheme.primary),
+                        label: const Text('Custom Exercise', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                        onPressed: () => _showCreateCustomDialog(context),
+                      ),
                     ),
                   ],
                 ),
@@ -228,6 +240,23 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
                       if (!matchSearch) return false;
                       
                       if (_selectedCategory == 'All') return true;
+                      if (_selectedCategory == 'Home Workout') {
+                        final n = ex.name.toLowerCase();
+                        final c = ex.category.toLowerCase();
+                        return n.contains('push-up') ||
+                            n.contains('dip') ||
+                            n.contains('plank') ||
+                            n.contains('squat') ||
+                            n.contains('lunge') ||
+                            n.contains('crunch') ||
+                            n.contains('twist') ||
+                            n.contains('burpee') ||
+                            n.contains('raise') ||
+                            n.contains('curl') ||
+                            n.contains('dumbbell') ||
+                            n.contains('bodyweight') ||
+                            c.contains('calisthenics');
+                      }
                       if (_selectedCategory == 'Favorites') return ex.isFavorite;
                       if (_selectedCategory == 'Custom') return ex.isCustom;
                       return ex.category == _selectedCategory;

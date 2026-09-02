@@ -53,29 +53,122 @@ class MuscleProgressScreen extends ConsumerWidget {
               ref.read(selectedMuscleProvider.notifier).state = null;
             },
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment(
-                      value: true,
-                      label: Text('Dual Anatomy', style: TextStyle(fontSize: 12)),
-                      icon: Icon(Icons.accessibility_new_rounded, size: 14),
+                Expanded(
+                  child: Container(
+                    height: 38,
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    ButtonSegment(
-                      value: false,
-                      label: Text('3D Flip', style: TextStyle(fontSize: 12)),
-                      icon: Icon(Icons.flip_camera_android_rounded, size: 14),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => ref.read(dualBodyViewProvider.notifier).state = true,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              decoration: BoxDecoration(
+                                color: ref.watch(dualBodyViewProvider)
+                                    ? Theme.of(context).colorScheme.surface
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: ref.watch(dualBodyViewProvider)
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.accessibility_new_rounded,
+                                    size: 15,
+                                    color: ref.watch(dualBodyViewProvider)
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Dual Anatomy',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: ref.watch(dualBodyViewProvider)
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: ref.watch(dualBodyViewProvider)
+                                          ? Theme.of(context).colorScheme.onSurface
+                                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => ref.read(dualBodyViewProvider.notifier).state = false,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              decoration: BoxDecoration(
+                                color: !ref.watch(dualBodyViewProvider)
+                                    ? Theme.of(context).colorScheme.surface
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: !ref.watch(dualBodyViewProvider)
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.flip_camera_android_rounded,
+                                    size: 15,
+                                    color: !ref.watch(dualBodyViewProvider)
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '3D Flip',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: !ref.watch(dualBodyViewProvider)
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: !ref.watch(dualBodyViewProvider)
+                                          ? Theme.of(context).colorScheme.onSurface
+                                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                  selected: {ref.watch(dualBodyViewProvider)},
-                  onSelectionChanged: (val) {
-                    ref.read(dualBodyViewProvider.notifier).state = val.first;
-                  },
+                  ),
                 ),
               ],
             ),
@@ -290,68 +383,214 @@ class MuscleProgressScreen extends ConsumerWidget {
   }
 
   void _showMuscleDetails(BuildContext context, WidgetRef ref, MuscleGroup muscle, MuscleAnalyticsResult result) {
+    final exercises = ref.read(exerciseListProvider).value ?? [];
+    final stats = result.stats[muscle]!;
+    final score = result.normalizedScores[muscle] ?? 0.0;
+    
+    String topExName = 'None';
+    if (stats.mostUsedExerciseId != null) {
+      final match = exercises.where((e) => e.id == stats.mostUsedExerciseId).firstOrNull;
+      if (match != null) {
+        topExName = match.name;
+      } else {
+        topExName = stats.mostUsedExerciseId!
+            .replaceAll('ex_', '')
+            .replaceAll('_', ' ')
+            .split(' ')
+            .map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '')
+            .join(' ');
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) {
-        final stats = result.stats[muscle]!;
-        final score = result.normalizedScores[muscle] ?? 0.0;
-        
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            top: 24,
-            left: 24,
-            right: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    muscle.displayName,
-                    style: Theme.of(context).textTheme.headlineSmall,
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              top: 12,
+              left: 20,
+              right: 20,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const Divider(),
-              ListTile(
-                title: const Text('Activity Score'),
-                trailing: Text('${(score * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              ListTile(
-                title: const Text('Working Sets'),
-                trailing: Text('${stats.workingSets}'),
-              ),
-              ListTile(
-                title: const Text('Volume Lifted'),
-                trailing: Text('${stats.volumeKg.toStringAsFixed(1)} kg'),
-              ),
-              ListTile(
-                title: const Text('Sessions Trained'),
-                trailing: Text('${stats.sessions}'),
-              ),
-              if (stats.mostUsedExerciseId != null)
-                ListTile(
-                  title: const Text('Top Exercise'),
-                  // Could fetch exact name from definitions, but for simplicity:
-                  trailing: Text('ID: ${stats.mostUsedExerciseId}'),
                 ),
-              const SizedBox(height: 32),
-            ],
+                const SizedBox(height: 16),
+
+                // Title row
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.accessibility_new_rounded, color: theme.colorScheme.primary, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            muscle.displayName,
+                            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            'Muscle Training Analytics',
+                            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${(score * 100).toInt()}% LOAD',
+                        style: TextStyle(
+                          color: theme.colorScheme.onPrimary,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 18),
+
+                // 4-Card Stats Grid
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMuscleStatBox(
+                        theme,
+                        isDark,
+                        icon: Icons.format_list_numbered_rounded,
+                        label: 'Working Sets',
+                        value: '${stats.workingSets}',
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildMuscleStatBox(
+                        theme,
+                        isDark,
+                        icon: Icons.fitness_center_rounded,
+                        label: 'Volume Lifted',
+                        value: '${stats.volumeKg.toStringAsFixed(1)} kg',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMuscleStatBox(
+                        theme,
+                        isDark,
+                        icon: Icons.event_repeat_rounded,
+                        label: 'Sessions',
+                        value: '${stats.sessions}',
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildMuscleStatBox(
+                        theme,
+                        isDark,
+                        icon: Icons.star_outline_rounded,
+                        label: 'Top Exercise',
+                        value: topExName,
+                        isCompact: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         );
       },
     ).whenComplete(() {
       ref.read(selectedMuscleProvider.notifier).state = null;
     });
+  }
+
+  static Widget _buildMuscleStatBox(
+    ThemeData theme,
+    bool isDark, {
+    required IconData icon,
+    required String label,
+    required String value,
+    bool isCompact = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: theme.colorScheme.primary),
+              const SizedBox(width: 6),
+              Text(
+                label.toUpperCase(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isCompact ? 13 : 16,
+              fontWeight: FontWeight.w800,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
   }
 
   static MuscleGroup? _stringToMuscleGroup(String str) {

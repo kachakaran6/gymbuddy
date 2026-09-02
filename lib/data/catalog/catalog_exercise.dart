@@ -70,4 +70,13 @@ class Exercise {
         return 'Other';
     }
   }
+
+  bool get isHomeExercise {
+    final eq = equipment.toLowerCase();
+    return eq.contains('bodyweight') ||
+        eq.contains('dumbbell') ||
+        eq.contains('band') ||
+        eq.contains('kettlebell') ||
+        eq.contains('none');
+  }
 }

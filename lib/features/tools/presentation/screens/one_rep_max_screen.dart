@@ -24,6 +24,21 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
     _recalculate();
   }
 
+  void _switchUnit(String newUnit) {
+    if (_unit == newUnit) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (newUnit == 'lb') {
+        _unit = 'lb';
+        _weight = (_weight * 2.20462 / 5).round() * 5.0;
+      } else {
+        _unit = 'kg';
+        _weight = (_weight / 2.20462 / 2.5).round() * 2.5;
+      }
+      _recalculate();
+    });
+  }
+
   void _recalculate() {
     _result = _calc.calculate1RM(weight: _weight, reps: _reps);
   }
@@ -31,7 +46,7 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
   void _adjustWeight(double delta) {
     HapticFeedback.selectionClick();
     setState(() {
-      _weight = (_weight + delta).clamp(1.0, 500.0);
+      _weight = (_weight + delta).clamp(1.0, _unit == 'kg' ? 500.0 : 1100.0);
       _recalculate();
     });
   }
@@ -42,6 +57,64 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
       _reps = (_reps + delta).clamp(1, 30);
       _recalculate();
     });
+  }
+
+  void _showDirectInputDialog({required bool isWeight, required ThemeData theme}) {
+    final controller = TextEditingController(
+      text: isWeight
+          ? _weight.toStringAsFixed(_weight % 1 == 0 ? 0 : 1)
+          : '$_reps',
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isWeight ? 'Enter Weight ($_unit)' : 'Enter Reps'),
+        content: TextField(
+          controller: controller,
+          keyboardType: isWeight
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.number,
+          autofocus: true,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            suffixText: isWeight ? _unit : 'reps',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (isWeight) {
+                final val = double.tryParse(controller.text);
+                if (val != null && val > 0) {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _weight = val;
+                    _recalculate();
+                  });
+                }
+              } else {
+                final val = int.tryParse(controller.text);
+                if (val != null && val >= 1 && val <= 30) {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    _reps = val;
+                    _recalculate();
+                  });
+                }
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showFormulaDialog(ThemeData theme) {
@@ -81,7 +154,7 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(formula, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-          Text(val, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.w600)),
+          Text(val, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.w700)),
         ],
       ),
     );
@@ -96,6 +169,21 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
       appBar: AppBar(
         title: const Text('One-Rep Max (1RM)'),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'kg', label: Text('KG', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                ButtonSegment(value: 'lb', label: Text('LB', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+              ],
+              selected: {_unit},
+              onSelectionChanged: (set) => _switchUnit(set.first),
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.info_outline_rounded),
             tooltip: 'Formulas comparison',
@@ -119,10 +207,10 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.25),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -174,7 +262,7 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
                           Icon(Icons.auto_graph_rounded, size: 14, color: theme.colorScheme.onPrimary),
                           const SizedBox(width: 6),
                           Text(
-                            'Based on 7 formulas (Tap for breakdown)',
+                            'Based on 7 standard formulas (Tap)',
                             style: TextStyle(
                               color: theme.colorScheme.onPrimary,
                               fontSize: 11,
@@ -189,15 +277,15 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
             // Stepper Controls
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
               ),
               child: Column(
                 children: [
@@ -209,15 +297,41 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Weight Lifted', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                            Text('Amount lifted in workout', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                            Text('Tap value to type directly', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                           ],
                         ),
                       ),
-                      _buildStepper(
-                        value: '$_weight $_unit',
-                        onDec: () => _adjustWeight(-2.5),
-                        onInc: () => _adjustWeight(2.5),
-                        theme: theme,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton.filledTonal(
+                            onPressed: () => _adjustWeight(_unit == 'kg' ? -2.5 : -5.0),
+                            icon: const Icon(Icons.remove_rounded, size: 18),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          GestureDetector(
+                            onTap: () => _showDirectInputDialog(isWeight: true, theme: theme),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              constraints: const BoxConstraints(minWidth: 70),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '$_weight $_unit',
+                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: theme.colorScheme.primary),
+                              ),
+                            ),
+                          ),
+                          IconButton.filledTonal(
+                            onPressed: () => _adjustWeight(_unit == 'kg' ? 2.5 : 5.0),
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -234,11 +348,37 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
                           ],
                         ),
                       ),
-                      _buildStepper(
-                        value: '$_reps',
-                        onDec: () => _adjustReps(-1),
-                        onInc: () => _adjustReps(1),
-                        theme: theme,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton.filledTonal(
+                            onPressed: () => _adjustReps(-1),
+                            icon: const Icon(Icons.remove_rounded, size: 18),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          GestureDetector(
+                            onTap: () => _showDirectInputDialog(isWeight: false, theme: theme),
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              constraints: const BoxConstraints(minWidth: 50),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '$_reps',
+                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: theme.colorScheme.primary),
+                              ),
+                            ),
+                          ),
+                          IconButton.filledTonal(
+                            onPressed: () => _adjustReps(1),
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -251,11 +391,11 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
             // Percentage Table Header
             Row(
               children: [
-                const Icon(Icons.table_chart_outlined, size: 20),
+                Icon(Icons.table_chart_outlined, size: 20, color: theme.colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   'Repetitions & Intensity Zones',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ],
             ),
@@ -264,16 +404,16 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
             // Percentage Table Cards
             Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
               ),
               child: Column(
                 children: [
                   for (int i = 0; i < _result.percentageTable.length; i++) ...[
                     _buildPercentageRow(_result.percentageTable[i], theme, isDark),
                     if (i < _result.percentageTable.length - 1)
-                      Divider(height: 1, color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEDF2F7)),
+                      Divider(height: 1, color: theme.dividerColor.withValues(alpha: 0.5)),
                   ],
                 ],
               ),
@@ -281,37 +421,6 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStepper({
-    required String value,
-    required VoidCallback onDec,
-    required VoidCallback onInc,
-    required ThemeData theme,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton.filledTonal(
-          onPressed: onDec,
-          icon: const Icon(Icons.remove_rounded, size: 18),
-          visualDensity: VisualDensity.compact,
-        ),
-        Container(
-          constraints: const BoxConstraints(minWidth: 70),
-          alignment: Alignment.center,
-          child: Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-          ),
-        ),
-        IconButton.filledTonal(
-          onPressed: onInc,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          visualDensity: VisualDensity.compact,
-        ),
-      ],
     );
   }
 
@@ -337,7 +446,7 @@ class _OneRepMaxScreenState extends State<OneRepMaxScreen> {
             width: 44,
             padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFF1F5F9),
+              color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
             ),
             alignment: Alignment.center,

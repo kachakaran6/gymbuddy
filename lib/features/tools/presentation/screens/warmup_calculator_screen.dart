@@ -24,6 +24,24 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
     _recalculate();
   }
 
+  void _switchUnit(String newUnit) {
+    if (_unit == newUnit) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (newUnit == 'lb') {
+        _unit = 'lb';
+        _workingWeight = (_workingWeight * 2.20462 / 5).round() * 5.0;
+        _barWeight = 45.0;
+      } else {
+        _unit = 'kg';
+        _workingWeight = (_workingWeight / 2.20462 / 2.5).round() * 2.5;
+        _barWeight = 20.0;
+      }
+      if (_workingWeight < _barWeight) _workingWeight = _barWeight;
+      _recalculate();
+    });
+  }
+
   void _recalculate() {
     _sets = _calc.calculateWarmupSets(
       workingWeight: _workingWeight,
@@ -34,19 +52,78 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
   void _adjustWeight(double delta) {
     HapticFeedback.selectionClick();
     setState(() {
-      _workingWeight = (_workingWeight + delta).clamp(_barWeight, 500.0);
+      _workingWeight = (_workingWeight + delta).clamp(_barWeight, _unit == 'kg' ? 500.0 : 1100.0);
       _recalculate();
     });
+  }
+
+  void _showDirectWeightDialog(ThemeData theme) {
+    final controller = TextEditingController(
+      text: _workingWeight.toStringAsFixed(_workingWeight % 1 == 0 ? 0 : 1),
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Enter Working Weight ($_unit)'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          autofocus: true,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            suffixText: _unit,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text);
+              if (val != null && val >= _barWeight) {
+                HapticFeedback.selectionClick();
+                setState(() {
+                  _workingWeight = val;
+                  _recalculate();
+                });
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Set Weight'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Warm-Up Sets Ramp'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'kg', label: Text('KG', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                ButtonSegment(value: 'lb', label: Text('LB', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+              ],
+              selected: {_unit},
+              onSelectionChanged: (set) => _switchUnit(set.first),
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -54,31 +131,31 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
           children: [
             // Target Working Weight Card
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFFF97316),
-                    const Color(0xFFEA580C),
+                    theme.colorScheme.primary,
+                    theme.colorScheme.primary.withValues(alpha: 0.8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(22),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFEA580C).withValues(alpha: 0.3),
-                    blurRadius: 14,
-                    offset: const Offset(0, 5),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     'TARGET WORKING WEIGHT',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: theme.colorScheme.onPrimary.withValues(alpha: 0.8),
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 2,
@@ -87,16 +164,16 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
                   const SizedBox(height: 6),
                   Text(
                     '$_workingWeight $_unit',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: theme.colorScheme.onPrimary,
                       fontSize: 42,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Optimal CNS ramp without building metabolic fatigue',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                    style: TextStyle(color: theme.colorScheme.onPrimary.withValues(alpha: 0.85), fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -109,9 +186,9 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                color: theme.colorScheme.surfaceContainer,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
               ),
               child: Row(
                 children: [
@@ -120,7 +197,7 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Working Weight', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                        Text('Your heavy set weight', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                        Text('Tap value to type directly', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                       ],
                     ),
                   ),
@@ -128,20 +205,29 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton.filledTonal(
-                        onPressed: () => _adjustWeight(-2.5),
+                        onPressed: () => _adjustWeight(_unit == 'kg' ? -2.5 : -5.0),
                         icon: const Icon(Icons.remove_rounded, size: 18),
                         visualDensity: VisualDensity.compact,
                       ),
-                      Container(
-                        constraints: const BoxConstraints(minWidth: 70),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '$_workingWeight $_unit',
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                      GestureDetector(
+                        onTap: () => _showDirectWeightDialog(theme),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          constraints: const BoxConstraints(minWidth: 72),
+                          alignment: Alignment.center,
+                          child: Text(
+                            '$_workingWeight $_unit',
+                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: theme.colorScheme.primary),
+                          ),
                         ),
                       ),
                       IconButton.filledTonal(
-                        onPressed: () => _adjustWeight(2.5),
+                        onPressed: () => _adjustWeight(_unit == 'kg' ? 2.5 : 5.0),
                         icon: const Icon(Icons.add_rounded, size: 18),
                         visualDensity: VisualDensity.compact,
                       ),
@@ -156,8 +242,18 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Warm-Up Progression', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                Text('${_sets.length} Ramp Sets', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w700, fontSize: 13)),
+                Text('Warm-Up Progression', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${_sets.length} Ramp Sets',
+                    style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, fontSize: 12),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -169,9 +265,9 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    color: theme.colorScheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: isDark ? const Color(0xFF2C2C2C) : const Color(0xFFE2E8F0)),
+                    border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
                   ),
                   child: Row(
                     children: [
@@ -179,7 +275,7 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,
@@ -205,9 +301,9 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  '× ${s.reps} reps',
+                                  '× ${s.reps} reps (${s.percentage}%)',
                                   style: TextStyle(
-                                    fontSize: 15,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                     color: theme.colorScheme.onSurfaceVariant,
                                   ),
@@ -227,13 +323,13 @@ class _WarmupCalculatorScreenState extends State<WarmupCalculatorScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF2B2B2B) : const Color(0xFFF1F5F9),
+                          color: theme.colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.timer_outlined, size: 14),
+                            Icon(Icons.timer_outlined, size: 14, color: theme.colorScheme.onSurfaceVariant),
                             const SizedBox(width: 4),
                             Text(
                               '${s.restSeconds}s',

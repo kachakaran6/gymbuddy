@@ -3,6 +3,41 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 class AppTheme {
+  static const String disp = 'Oswald';
+  static const String sans = 'IBM Plex Sans';
+
+  static TextStyle d(
+    double size, {
+    FontWeight weight = FontWeight.w700,
+    Color? color,
+    double? letterSpacing,
+    double height = 1.0,
+  }) =>
+      TextStyle(
+        fontFamily: disp,
+        fontSize: size,
+        fontWeight: weight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+      );
+
+  static TextStyle s(
+    double size, {
+    FontWeight weight = FontWeight.w400,
+    Color? color,
+    double? letterSpacing,
+    double height = 1.35,
+  }) =>
+      TextStyle(
+        fontFamily: sans,
+        fontSize: size,
+        fontWeight: weight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+      );
+
   /// Returns the selected [Color] from the accentKey catalog or defaults to blue.
   static Color getAccentColor(String accentKey, {bool isDark = false}) {
     final accent = AppAccentColors.fromName(accentKey);
@@ -56,7 +91,9 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      fontFamily: sans,
       colorScheme: colorScheme,
+      extensions: [GymColors.light.copyWith(accent: accent)],
       scaffoldBackgroundColor: background,
       canvasColor: background,
       cardColor: surface,
@@ -288,7 +325,9 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      fontFamily: sans,
       colorScheme: colorScheme,
+      extensions: [GymColors.dark.copyWith(accent: accent)],
       scaffoldBackgroundColor: background,
       canvasColor: background,
       cardColor: surfaceContainer,

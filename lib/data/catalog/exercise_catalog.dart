@@ -1,6 +1,10 @@
 import 'catalog_exercise.dart';
+import 'home_exercises.dart';
+
+export 'home_exercises.dart';
 
 const List<Exercise> kExercises = [
+  ...kHomeExercises,
   Exercise(
     id: 'EIeI8Vf',
     name: 'Barbell Bench Press',

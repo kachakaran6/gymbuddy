@@ -15,6 +15,8 @@ import '../../domain/models/models.dart';
 import '../../widgets/gym_widgets.dart';
 import 'notification_diagnostics_screen.dart';
 import 'storage_diagnostics_screen.dart';
+import '../onboarding/how_to_use_dialog.dart';
+import '../onboarding/onboarding_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -58,6 +60,76 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             100, // floating nav clearance
           ),
           children: [
+            // ── How to Use GymBuddy ────────────────────────
+            const GymSectionHeader(title: 'App Tutorial & Guide'),
+            _buildCard(
+              isDark: isDark,
+              cardBg: cardBg,
+              borderColor: borderColor,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.menu_book_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                    title: const Text(
+                      'How to Use GymBuddy',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: const Text(
+                      'Interactive walkthrough of body map, home/gym workouts & rest timer',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => HowToUseGuideModal.show(context),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.auto_awesome_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 20,
+                      ),
+                    ),
+                    title: const Text(
+                      'Replay Onboarding Splash',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: const Text(
+                      'Re-launch the full welcome setup experience',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const OnboardingScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+
             // ── Gym Schedule ────────────────────────────────
             const GymSectionHeader(title: 'Gym Schedule'),
             _buildCard(
