@@ -93,20 +93,31 @@ class _BodyCanvas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, c) {
-      final w = c.maxWidth;
-      final scale = w / bodyViewW;
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapUp: onTap == null
-            ? null
-            : (d) {
-                final p = Offset(d.localPosition.dx / scale, d.localPosition.dy / scale);
-                final id = muscleAt(p);
-                if (id != null) onTap!(id);
-              },
-        child: CustomPaint(
-          size: Size(w, w * _bodyAspect),
-          painter: painter,
+      final availW = c.maxWidth;
+      final bool hasBoundedH = c.hasBoundedHeight && c.maxHeight.isFinite && c.maxHeight > 0;
+      final availH = hasBoundedH ? c.maxHeight : availW * _bodyAspect;
+
+      final scaleW = availW / bodyViewW;
+      final scaleH = availH / bodyViewH;
+      final scale = hasBoundedH ? (scaleW < scaleH ? scaleW : scaleH) : scaleW;
+
+      final drawW = bodyViewW * scale;
+      final drawH = bodyViewH * scale;
+
+      return Center(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: onTap == null
+              ? null
+              : (d) {
+                  final p = Offset(d.localPosition.dx / scale, d.localPosition.dy / scale);
+                  final id = muscleAt(p);
+                  if (id != null) onTap!(id);
+                },
+          child: CustomPaint(
+            size: Size(drawW, drawH),
+            painter: painter,
+          ),
         ),
       );
     });

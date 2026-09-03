@@ -579,6 +579,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildBodyMapCard(BuildContext context, GymColors gc) {
     return SoftCard(
       radius: 20,
+      clip: true,
       padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -230,7 +230,6 @@ class GymRepository {
 
   Future<void> reconcileMissedDays(List<GymScheduleModel> schedules) async {
     final today = DateTime.now();
-    final todayIso = GymDateUtils.toIsoDate(today);
 
     final Map<int, GymScheduleModel> scheduleMap = {for (var s in schedules) s.weekday: s};
 
@@ -400,6 +399,14 @@ class GymRepository {
     final existingExs = await (db.select(db.workoutExercises)..where((t) => t.workoutId.equals(workoutId))).get();
     final sortOrder = existingExs.length;
     final weId = _uuid.v4();
+
+    if (existingExs.isEmpty) {
+      await (db.update(db.workouts)..where((t) => t.id.equals(workoutId))).write(
+        WorkoutsCompanion(
+          startedAt: Value(DateTime.now()),
+        ),
+      );
+    }
 
     await db.into(db.workoutExercises).insert(
           WorkoutExercisesCompanion.insert(

@@ -277,11 +277,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 24),
           SoftCard(
             radius: 20,
+            clip: true,
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 SizedBox(
-                  height: 180,
+                  height: 165,
                   child: Center(
                     child: BodyHeatMap(
                       intensity: const {

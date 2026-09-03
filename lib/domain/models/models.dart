@@ -244,6 +244,7 @@ class WorkoutSessionModel {
   });
 
   int get durationSeconds {
+    if (exercises.isEmpty) return 0;
     final end = endedAt ?? DateTime.now();
     return end.difference(startedAt).inSeconds;
   }

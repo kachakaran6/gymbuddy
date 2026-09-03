@@ -24,7 +24,6 @@ class WorkoutLoggerScreen extends ConsumerStatefulWidget {
 
 class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
   Timer? _timer;
-  int _elapsedSeconds = 0;
 
   @override
   void initState() {
@@ -35,7 +34,7 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
-        setState(() => _elapsedSeconds++);
+        setState(() {});
       }
     });
   }
@@ -121,7 +120,7 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
       );
     }
 
-    final totalElapsed = workout.durationSeconds + _elapsedSeconds;
+    final totalElapsed = workout.durationSeconds;
 
     return PopScope(
       canPop: false,

@@ -52,5 +52,6 @@ flutter-applcations-*.json
 key.properties
 
 GymMane-main/
+opengym-main/
 flutter-applcations-*.json
 *-*.json
