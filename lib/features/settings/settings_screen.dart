@@ -26,17 +26,25 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  final List<String> _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final List<String> _dayNames = [
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun',
+  ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final prefs = ref.watch(userPreferencesProvider);
     final schedules = ref.watch(gymScheduleProvider);
-    final repo = ref.watch(repositoryProvider);
-
-    final activeDays =
-        schedules.where((s) => s.enabled).map((s) => s.weekday).toSet();
+    final activeDays = schedules
+        .where((s) => s.enabled)
+        .map((s) => s.weekday)
+        .toSet();
     final sampleSchedule = schedules.firstWhere(
       (s) => s.enabled,
       orElse: () => const GymScheduleModel(weekday: 1, enabled: true),
@@ -44,13 +52,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final isDark = theme.brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF262626) : const Color(0xFFE5E5E5);
+    final borderColor = isDark
+        ? const Color(0xFF262626)
+        : const Color(0xFFE5E5E5);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Settings'), centerTitle: true),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
@@ -68,55 +75,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               borderColor: borderColor,
               child: Column(
                 children: [
-                  ListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.menu_book_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 20,
-                      ),
-                    ),
-                    title: const Text(
-                      'How to Use GymBuddy',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: const Text(
-                      'Interactive walkthrough of body map, home/gym workouts & rest timer',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
+                  GymSettingsRow(
+                    icon: Icons.menu_book_rounded,
+                    title: 'How to Use GymBuddy',
+                    subtitle:
+                        'Interactive walkthrough of body map, home/gym workouts & rest timer',
                     onTap: () => HowToUseGuideModal.show(context),
                   ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.auto_awesome_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 20,
-                      ),
-                    ),
-                    title: const Text(
-                      'Replay Onboarding Splash',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: const Text(
-                      'Re-launch the full welcome setup experience',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
+                  Divider(height: 1, thickness: 1, color: borderColor),
+                  GymSettingsRow(
+                    icon: Icons.auto_awesome_rounded,
+                    title: 'Replay Onboarding Splash',
+                    subtitle: 'Re-launch the full welcome setup experience',
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -253,44 +223,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               borderColor: borderColor,
               child: Column(
                 children: [
-                  ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.base,
-                      vertical: AppSpacing.xs,
-                    ),
-                    leading: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: Icon(
-                        Icons.notifications_active_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 18,
-                      ),
-                    ),
-                    title: const Text(
-                      'Test & Diagnostics',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      'Check notification health',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      size: 18,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                  GymSettingsRow(
+                    icon: Icons.notifications_active_rounded,
+                    title: 'Test & Diagnostics',
+                    subtitle: 'Check notification health',
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const NotificationDiagnosticsScreen(),
+                          builder: (context) =>
+                              const NotificationDiagnosticsScreen(),
                         ),
                       );
                     },
@@ -358,38 +300,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Divider(height: 1, thickness: 1, color: borderColor),
 
                   // Dark mode toggle
-                  ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.base,
-                      vertical: AppSpacing.xs,
-                    ),
-                    leading: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: Icon(
-                        prefs.themeMode == 'dark'
-                            ? Icons.dark_mode_rounded
-                            : Icons.light_mode_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 18,
-                      ),
-                    ),
-                    title: const Text(
-                      'Dark Mode',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      prefs.themeMode == 'dark'
-                          ? 'Dark theme active'
-                          : 'Light theme active',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
+                  GymSettingsRow(
+                    icon: prefs.themeMode == 'dark'
+                        ? Icons.dark_mode_rounded
+                        : Icons.light_mode_rounded,
+                    title: 'Dark Mode',
+                    subtitle: prefs.themeMode == 'dark'
+                        ? 'Dark theme active'
+                        : 'Light theme active',
                     trailing: Switch.adaptive(
                       value: prefs.themeMode == 'dark',
                       onChanged: (isDark) {
@@ -416,8 +334,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: AppAccentColors.all.map((accent) {
-                            final isSelected = prefs.accentKey.toLowerCase() == accent.name.toLowerCase();
-                            final color = AppTheme.getAccentColor(accent.name, isDark: isDark);
+                            final isSelected =
+                                prefs.accentKey.toLowerCase() ==
+                                accent.name.toLowerCase();
+                            final color = AppTheme.getAccentColor(
+                              accent.name,
+                              isDark: isDark,
+                            );
                             final onColor = AppTheme.getOnAccentColor(color);
                             return Semantics(
                               label: accent.name,
@@ -443,17 +366,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     boxShadow: isSelected
                                         ? [
                                             BoxShadow(
-                                              color: color
-                                                  .withValues(alpha: 0.4),
+                                              color: color.withValues(
+                                                alpha: 0.4,
+                                              ),
                                               blurRadius: 8,
                                               spreadRadius: 1,
-                                            )
+                                            ),
                                           ]
                                         : null,
                                   ),
                                   child: isSelected
-                                      ? Icon(Icons.check_rounded,
-                                          size: 16, color: onColor)
+                                      ? Icon(
+                                          Icons.check_rounded,
+                                          size: 16,
+                                          color: onColor,
+                                        )
                                       : null,
                                 ),
                               ),
@@ -484,7 +411,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const StorageDiagnosticsScreen(),
+                          builder: (context) =>
+                              const StorageDiagnosticsScreen(),
                         ),
                       );
                     },
@@ -496,10 +424,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: 'Create a local JSON snapshot instantly',
                     onTap: () async {
                       try {
-                        await ref.read(backupServiceProvider).createAutomaticBackup();
+                        await ref
+                            .read(backupServiceProvider)
+                            .createAutomaticBackup();
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Backup created successfully.')),
+                            const SnackBar(
+                              content: Text('Backup created successfully.'),
+                            ),
                           );
                         }
                       } catch (e) {
@@ -525,18 +457,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: 'Save latest snapshot to external storage',
                     onTap: () async {
                       final backupService = ref.read(backupServiceProvider);
-                      final snapshots = await backupService.getRecoverySnapshots();
+                      final snapshots = await backupService
+                          .getRecoverySnapshots();
                       if (snapshots.isEmpty) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('No backups available to export.')),
+                            const SnackBar(
+                              content: Text('No backups available to export.'),
+                            ),
                           );
                         }
                         return;
                       }
                       final file = snapshots.first;
                       final jsonStr = await file.readAsString();
-                      await Share.share(jsonStr, subject: 'GymBuddy_Backup.json');
+                      await Share.share(
+                        jsonStr,
+                        subject: 'GymBuddy_Backup.json',
+                      );
                     },
                   ),
                   Divider(height: 1, thickness: 1, color: borderColor),
@@ -636,8 +574,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   final size = (file.lengthSync() / 1024).toStringAsFixed(1);
                   return ListTile(
                     leading: const Icon(Icons.restore),
-                    title: Text('Snapshot from ${modified.year}-${modified.month.toString().padLeft(2, '0')}-${modified.day.toString().padLeft(2, '0')}'),
-                    subtitle: Text('${modified.hour.toString().padLeft(2, '0')}:${modified.minute.toString().padLeft(2, '0')} • ${size}KB'),
+                    title: Text(
+                      'Snapshot from ${modified.year}-${modified.month.toString().padLeft(2, '0')}-${modified.day.toString().padLeft(2, '0')}',
+                    ),
+                    subtitle: Text(
+                      '${modified.hour.toString().padLeft(2, '0')}:${modified.minute.toString().padLeft(2, '0')} • ${size}KB',
+                    ),
                     onTap: () {
                       Navigator.pop(ctx);
                       _restoreFromFile(context, ref, file);
@@ -665,14 +607,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking file: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking file: $e')));
       }
     }
   }
 
-  Future<void> _showUniversalCsvImportDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showUniversalCsvImportDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -776,7 +721,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               final text = ctrl.text.trim();
@@ -792,7 +740,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<void> _processCsvImport(BuildContext context, WidgetRef ref, String csvContent) async {
+  Future<void> _processCsvImport(
+    BuildContext context,
+    WidgetRef ref,
+    String csvContent,
+  ) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -800,7 +752,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     try {
-      final summary = await ref.read(universalImportServiceProvider).importCsv(csvContent);
+      final summary = await ref
+          .read(universalImportServiceProvider)
+          .importCsv(csvContent);
       if (context.mounted) Navigator.pop(context); // pop loading
 
       // Refresh providers
@@ -809,23 +763,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ref.invalidate(exerciseListProvider);
 
       if (!context.mounted) return;
-      final rangeText = summary.earliestDate != null && summary.latestDate != null
+      final rangeText =
+          summary.earliestDate != null && summary.latestDate != null
           ? '${DateFormat('MMM yyyy').format(summary.earliestDate!)} – ${DateFormat('MMM yyyy').format(summary.latestDate!)}'
           : 'All time';
 
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          icon: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 48),
+          icon: const Icon(
+            Icons.check_circle_rounded,
+            color: Color(0xFF10B981),
+            size: 48,
+          ),
           title: const Text('Import Successful!'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('• Workouts Imported: ${summary.workoutsImported}', style: const TextStyle(fontWeight: FontWeight.w700)),
-              Text('• Sets Logged: ${summary.setsImported}', style: const TextStyle(fontWeight: FontWeight.w700)),
-              Text('• Exercises Matched: ${summary.exercisesMatched}', style: const TextStyle(fontWeight: FontWeight.w700)),
-              Text('• Date Span: $rangeText', style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(
+                '• Workouts Imported: ${summary.workoutsImported}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                '• Sets Logged: ${summary.setsImported}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                '• Exercises Matched: ${summary.exercisesMatched}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                '• Date Span: $rangeText',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ],
           ),
           actions: [
@@ -842,11 +813,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            icon: const Icon(Icons.error_outline_rounded, color: Colors.red, size: 44),
+            icon: const Icon(
+              Icons.error_outline_rounded,
+              color: Colors.red,
+              size: 44,
+            ),
             title: const Text('Import Failed'),
             content: Text('$e'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
             ],
           ),
         );
@@ -854,8 +832,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-
-  Future<void> _restoreFromFile(BuildContext context, WidgetRef ref, File file) async {
+  Future<void> _restoreFromFile(
+    BuildContext context,
+    WidgetRef ref,
+    File file,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -884,23 +865,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final content = await file.readAsString();
       final backupService = ref.read(backupServiceProvider);
       await backupService.restoreBackup(content);
-      
+
       // Reload providers
       ref.invalidate(attendanceProvider);
       ref.invalidate(gymScheduleProvider);
       ref.invalidate(userPreferencesProvider);
       ref.invalidate(activeWorkoutProvider);
       ref.invalidate(totalXpProvider);
-      
+
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Backup restored successfully!')),
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Import failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
     }
   }
 }
@@ -937,9 +918,7 @@ class _DayChip extends StatelessWidget {
           border: Border.all(
             color: isSelected
                 ? accentColor.withValues(alpha: 0.5)
-                : (isDark
-                    ? const Color(0xFF262626)
-                    : const Color(0xFFE5E5E5)),
+                : (isDark ? const Color(0xFF262626) : const Color(0xFFE5E5E5)),
             width: 1,
           ),
         ),

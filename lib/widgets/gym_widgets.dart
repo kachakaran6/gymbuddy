@@ -58,10 +58,7 @@ class GymEmptyState extends StatelessWidget {
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: AppSpacing.xl),
-              FilledButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
+              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
           ],
         ),
@@ -93,7 +90,9 @@ class GymStatCard extends StatelessWidget {
     final color = accentColor ?? theme.colorScheme.primary;
     final isDark = theme.brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF262626) : const Color(0xFFE5E5E5);
+    final borderColor = isDark
+        ? const Color(0xFF262626)
+        : const Color(0xFFE5E5E5);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.base),
@@ -167,7 +166,12 @@ class GymSectionHeader extends StatelessWidget {
   }
 }
 
-/// Reusable settings row (icon → title → subtitle → trailing widget/chevron).
+/// Reusable settings row with standardized geometry:
+/// - Fixed 40x40 leading icon container (centered icon)
+/// - Consistent horizontal padding (16.0 px) and vertical padding (12.0 px)
+/// - Guaranteed identical horizontal alignment for title and subtitle
+/// - Standardized trailing chevron (centered vertically)
+/// - Minimum touch target >= 48px height
 class GymSettingsRow extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -191,35 +195,84 @@ class GymSettingsRow extends StatelessWidget {
     final theme = Theme.of(context);
     final color = iconColor ?? theme.colorScheme.primary;
 
-    return ListTile(
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.base,
+              vertical: 12,
+            ),
+            child: Row(
+              children: [
+                // Standardized 40x40 icon container
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(child: Icon(icon, size: 20, color: color)),
+                ),
+                const SizedBox(width: 14),
+
+                // Title and Subtitle aligned precisely
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style:
+                            theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ) ??
+                            const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                      ),
+                      if (subtitle != null && subtitle!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // Trailing widget or chevron
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing!,
+                ] else if (onTap != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.8,
+                    ),
+                    size: 20,
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
-        child: Icon(icon, size: 18, color: color),
       ),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            )
-          : null,
-      trailing: trailing ??
-          (onTap != null
-              ? Icon(
-                  Icons.chevron_right,
-                  color: theme.colorScheme.onSurfaceVariant,
-                  size: 18,
-                )
-              : null),
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
     );
   }
 }
