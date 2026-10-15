@@ -23,7 +23,6 @@ final repositoryProvider = Provider<GymRepository>((ref) {
 
 final gymRepositoryProvider = repositoryProvider;
 
-
 final notificationServiceProvider = Provider<NotificationService>((ref) {
   return LocalNotificationService();
 });
@@ -35,7 +34,6 @@ final backupServiceProvider = Provider<BackupService>((ref) {
 final universalImportServiceProvider = Provider<UniversalImportService>((ref) {
   return UniversalImportService(ref.watch(databaseProvider));
 });
-
 
 // Preferences State
 class PreferencesNotifier extends StateNotifier<UserPreferencesModel> {
@@ -76,9 +74,10 @@ class PreferencesNotifier extends StateNotifier<UserPreferencesModel> {
   }
 }
 
-final userPreferencesProvider = StateNotifierProvider<PreferencesNotifier, UserPreferencesModel>((ref) {
-  return PreferencesNotifier(ref.watch(repositoryProvider));
-});
+final userPreferencesProvider =
+    StateNotifierProvider<PreferencesNotifier, UserPreferencesModel>((ref) {
+      return PreferencesNotifier(ref.watch(repositoryProvider));
+    });
 
 // Schedule State
 class ScheduleNotifier extends StateNotifier<List<GymScheduleModel>> {
@@ -99,9 +98,10 @@ class ScheduleNotifier extends StateNotifier<List<GymScheduleModel>> {
   }
 }
 
-final gymScheduleProvider = StateNotifierProvider<ScheduleNotifier, List<GymScheduleModel>>((ref) {
-  return ScheduleNotifier(ref.watch(repositoryProvider));
-});
+final gymScheduleProvider =
+    StateNotifierProvider<ScheduleNotifier, List<GymScheduleModel>>((ref) {
+      return ScheduleNotifier(ref.watch(repositoryProvider));
+    });
 
 // Reminder Offsets State
 class OffsetsNotifier extends StateNotifier<List<ReminderOffsetModel>> {
@@ -122,31 +122,30 @@ class OffsetsNotifier extends StateNotifier<List<ReminderOffsetModel>> {
   }
 }
 
-final reminderOffsetsProvider = StateNotifierProvider<OffsetsNotifier, List<ReminderOffsetModel>>((ref) {
-  return OffsetsNotifier(ref.watch(repositoryProvider));
-});
+final reminderOffsetsProvider =
+    StateNotifierProvider<OffsetsNotifier, List<ReminderOffsetModel>>((ref) {
+      return OffsetsNotifier(ref.watch(repositoryProvider));
+    });
 
 // Attendance & Streak State
 class AttendanceState {
   final Map<String, AttendanceStatus> attendances;
   final StreakModel streak;
 
-  const AttendanceState({
-    required this.attendances,
-    required this.streak,
-  });
+  const AttendanceState({required this.attendances, required this.streak});
 }
 
 class AttendanceNotifier extends StateNotifier<AttendanceState> {
   final GymRepository _repo;
   final NotificationService _notifService;
-  final Ref _ref;
 
-  AttendanceNotifier(this._repo, this._notifService, this._ref)
-      : super(const AttendanceState(
+  AttendanceNotifier(this._repo, this._notifService)
+    : super(
+        const AttendanceState(
           attendances: {},
           streak: StreakModel(currentStreak: 0, longestStreak: 0),
-        )) {
+        ),
+      ) {
     load();
   }
 
@@ -155,7 +154,10 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
     await _repo.reconcileMissedDays(schedules);
     final attendances = await _repo.getAllAttendances();
 
-    final activeDays = schedules.where((s) => s.enabled).map((s) => s.weekday).toSet();
+    final activeDays = schedules
+        .where((s) => s.enabled)
+        .map((s) => s.weekday)
+        .toSet();
     final streak = StreakCalculator.calculateStreak(
       attendances: attendances,
       gymDays: activeDays,
@@ -163,7 +165,12 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
     );
 
     state = AttendanceState(attendances: attendances, streak: streak);
-    _scheduleNotifications(activeDays, schedules, attendances, streak.currentStreak);
+    _scheduleNotifications(
+      activeDays,
+      schedules,
+      attendances,
+      streak.currentStreak,
+    );
   }
 
   Future<bool> checkInToday() async {
@@ -185,9 +192,15 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
     int currentStreak,
   ) async {
     final offsets = await _repo.getReminderOffsets();
-    final offsetMins = offsets.where((o) => o.enabled).map((o) => o.offsetMinutes).toList();
+    final offsetMins = offsets
+        .where((o) => o.enabled)
+        .map((o) => o.offsetMinutes)
+        .toList();
 
-    final sampleSchedule = schedules.firstWhere((s) => s.enabled, orElse: () => schedules.first);
+    final sampleSchedule = schedules.firstWhere(
+      (s) => s.enabled,
+      orElse: () => schedules.first,
+    );
 
     await _notifService.scheduleRemindersForSchedule(
       activeGymDays: activeDays,
@@ -200,13 +213,13 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
   }
 }
 
-final attendanceProvider = StateNotifierProvider<AttendanceNotifier, AttendanceState>((ref) {
-  return AttendanceNotifier(
-    ref.watch(repositoryProvider),
-    ref.watch(notificationServiceProvider),
-    ref,
-  );
-});
+final attendanceProvider =
+    StateNotifierProvider<AttendanceNotifier, AttendanceState>((ref) {
+      return AttendanceNotifier(
+        ref.watch(repositoryProvider),
+        ref.watch(notificationServiceProvider),
+      );
+    });
 
 // Active Workout State
 class WorkoutNotifier extends StateNotifier<WorkoutSessionModel?> {
@@ -254,10 +267,48 @@ class WorkoutNotifier extends StateNotifier<WorkoutSessionModel?> {
     await load();
   }
 
-  Future<void> finishWorkout({String? notes}) async {
-    if (state == null) return;
-    await _repo.finishWorkout(state!.id, notes: notes);
+  Future<WorkoutSessionModel?> pauseWorkout() async {
+    if (state == null) return null;
+    final updated = await _repo.pauseWorkout(state!.id);
+    if (updated != null) state = updated;
+    return state;
+  }
+
+  Future<WorkoutSessionModel?> resumeWorkout() async {
+    if (state == null) return null;
+    final updated = await _repo.resumeWorkout(state!.id);
+    if (updated != null) state = updated;
+    return state;
+  }
+
+  Future<WorkoutSessionModel?> togglePause() async {
+    if (state == null) return null;
+    if (state!.isPaused) {
+      return await resumeWorkout();
+    } else {
+      return await pauseWorkout();
+    }
+  }
+
+  Future<WorkoutSessionModel?> resetWorkoutTimer() async {
+    if (state == null) return null;
+    final updated = await _repo.resetWorkoutTimer(state!.id);
+    if (updated != null) state = updated;
+    return state;
+  }
+
+  Future<WorkoutSessionModel?> finishWorkout({
+    String? notes,
+    int? overrideDurationSeconds,
+  }) async {
+    if (state == null) return null;
+    final finalized = await _repo.finishWorkout(
+      state!.id,
+      notes: notes,
+      overrideDurationSeconds: overrideDurationSeconds,
+    );
     state = null;
+    return finalized;
   }
 
   Future<void> discardWorkout() async {
@@ -267,9 +318,10 @@ class WorkoutNotifier extends StateNotifier<WorkoutSessionModel?> {
   }
 }
 
-final activeWorkoutProvider = StateNotifierProvider<WorkoutNotifier, WorkoutSessionModel?>((ref) {
-  return WorkoutNotifier(ref.watch(repositoryProvider));
-});
+final activeWorkoutProvider =
+    StateNotifierProvider<WorkoutNotifier, WorkoutSessionModel?>((ref) {
+      return WorkoutNotifier(ref.watch(repositoryProvider));
+    });
 
 // Exercises Library State
 final exerciseListProvider = FutureProvider<List<ExerciseModel>>((ref) async {
@@ -277,7 +329,9 @@ final exerciseListProvider = FutureProvider<List<ExerciseModel>>((ref) async {
   return await repo.getExerciseDefinitions();
 });
 
-final completedWorkoutsProvider = FutureProvider<List<WorkoutSessionModel>>((ref) async {
+final completedWorkoutsProvider = FutureProvider<List<WorkoutSessionModel>>((
+  ref,
+) async {
   final repo = ref.watch(repositoryProvider);
   return await repo.getCompletedWorkouts();
 });
@@ -288,13 +342,17 @@ final totalXpProvider = FutureProvider<int>((ref) async {
   return await repo.getTotalXp();
 });
 
-final achievementsProvider = FutureProvider<List<AchievementModel>>((ref) async {
+final achievementsProvider = FutureProvider<List<AchievementModel>>((
+  ref,
+) async {
   final repo = ref.watch(repositoryProvider);
   final attState = ref.watch(attendanceProvider);
   return await repo.getAchievements(attState.streak.currentStreak);
 });
 
-final templatesProvider = FutureProvider<List<WorkoutTemplateModel>>((ref) async {
+final templatesProvider = FutureProvider<List<WorkoutTemplateModel>>((
+  ref,
+) async {
   final repo = ref.watch(repositoryProvider);
   return await repo.getTemplates();
 });
@@ -365,7 +423,11 @@ class RestTimerNotifier extends StateNotifier<RestTimerState> {
     _ticker?.cancel();
     _ticker = null;
     RestAlarmService.instance.stopAlarm();
-    state = RestTimerState(isRunning: false, remainingSeconds: 0, isComplete: false);
+    state = RestTimerState(
+      isRunning: false,
+      remainingSeconds: 0,
+      isComplete: false,
+    );
   }
 
   void addTime(int seconds) {
@@ -383,9 +445,10 @@ class RestTimerNotifier extends StateNotifier<RestTimerState> {
   }
 }
 
-final restTimerProvider = StateNotifierProvider<RestTimerNotifier, RestTimerState>((ref) {
-  return RestTimerNotifier();
-});
+final restTimerProvider =
+    StateNotifierProvider<RestTimerNotifier, RestTimerState>((ref) {
+      return RestTimerNotifier();
+    });
 
 class ExercisePerformanceParams {
   final String exerciseId;
@@ -405,7 +468,14 @@ class ExercisePerformanceParams {
   int get hashCode => exerciseId.hashCode ^ weightUnit.hashCode;
 }
 
-final previousPerformanceProvider = FutureProvider.family<String?, ExercisePerformanceParams>((ref, params) async {
-  final repo = ref.watch(repositoryProvider);
-  return await repo.getPreviousPerformance(params.exerciseId, params.weightUnit);
-});
+final previousPerformanceProvider =
+    FutureProvider.family<String?, ExercisePerformanceParams>((
+      ref,
+      params,
+    ) async {
+      final repo = ref.watch(repositoryProvider);
+      return await repo.getPreviousPerformance(
+        params.exerciseId,
+        params.weightUnit,
+      );
+    });

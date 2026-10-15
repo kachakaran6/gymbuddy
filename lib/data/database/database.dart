@@ -9,10 +9,13 @@ class UserPreferences extends Table {
   TextColumn get themeMode => text().withDefault(const Constant('system'))();
   TextColumn get accentKey => text().withDefault(const Constant('indigo'))();
   TextColumn get weightUnit => text().withDefault(const Constant('kg'))();
-  BoolColumn get onboardingComplete => boolean().withDefault(const Constant(false))();
-  TextColumn get notificationPermissionState => text().withDefault(const Constant('unknown'))();
+  BoolColumn get onboardingComplete =>
+      boolean().withDefault(const Constant(false))();
+  TextColumn get notificationPermissionState =>
+      text().withDefault(const Constant('unknown'))();
   DateTimeColumn get reviewLastRequestedAt => dateTime().nullable()();
-  IntColumn get reviewEligibleCompletedWorkouts => integer().withDefault(const Constant(0))();
+  IntColumn get reviewEligibleCompletedWorkouts =>
+      integer().withDefault(const Constant(0))();
   IntColumn get schemaVersion => integer().withDefault(const Constant(1))();
 
   @override
@@ -25,7 +28,8 @@ class GymSchedules extends Table {
   BoolColumn get enabled => boolean().withDefault(const Constant(true))();
   IntColumn get gymHour => integer().withDefault(const Constant(18))();
   IntColumn get gymMinute => integer().withDefault(const Constant(0))();
-  IntColumn get cutoffOffsetMinutes => integer().withDefault(const Constant(60))();
+  IntColumn get cutoffOffsetMinutes =>
+      integer().withDefault(const Constant(60))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
@@ -58,6 +62,9 @@ class Workouts extends Table {
   TextColumn get attendanceDate => text().nullable()(); // YYYY-MM-DD
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get endedAt => dateTime().nullable()();
+  DateTimeColumn get pausedAt => dateTime().nullable()();
+  IntColumn get pausedSeconds => integer().withDefault(const Constant(0))();
+  IntColumn get totalDurationSeconds => integer().nullable()();
   TextColumn get status => text()(); // active, completed, discarded
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -71,7 +78,8 @@ class Workouts extends Table {
 class ExerciseDefinitions extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
-  TextColumn get category => text()(); // Chest, Back, Legs, Arms, Shoulders, Cardio, Abs
+  TextColumn get category =>
+      text()(); // Chest, Back, Legs, Arms, Shoulders, Cardio, Abs
   BoolColumn get isCustom => boolean().withDefault(const Constant(false))();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
@@ -83,7 +91,8 @@ class ExerciseDefinitions extends Table {
 // 7. Workout Exercises Table
 class WorkoutExercises extends Table {
   TextColumn get id => text()();
-  TextColumn get workoutId => text().references(Workouts, #id, onDelete: KeyAction.cascade)();
+  TextColumn get workoutId =>
+      text().references(Workouts, #id, onDelete: KeyAction.cascade)();
   TextColumn get exerciseId => text().references(ExerciseDefinitions, #id)();
   IntColumn get sortOrder => integer()();
 
@@ -94,14 +103,18 @@ class WorkoutExercises extends Table {
 // 8. Workout Sets Table
 class WorkoutSets extends Table {
   TextColumn get id => text()();
-  TextColumn get workoutExerciseId => text().references(WorkoutExercises, #id, onDelete: KeyAction.cascade)();
+  TextColumn get workoutExerciseId =>
+      text().references(WorkoutExercises, #id, onDelete: KeyAction.cascade)();
   IntColumn get sortOrder => integer()();
-  TextColumn get setType => text().withDefault(const Constant('normal'))(); // warmup, normal, drop
+  TextColumn get setType =>
+      text().withDefault(const Constant('normal'))(); // warmup, normal, drop
   RealColumn get weightKg => real().nullable()();
   IntColumn get reps => integer().nullable()();
   IntColumn get durationSeconds => integer().nullable()();
   RealColumn get distanceMeters => real().nullable()();
   IntColumn get estimatedCalories => integer().nullable()();
+  IntColumn get rir => integer().nullable()();
+  RealColumn get rpe => real().nullable()();
   DateTimeColumn get completedAt => dateTime().nullable()();
 
   @override
@@ -155,7 +168,8 @@ class WorkoutTemplates extends Table {
 // 13. Workout Template Exercises Table
 class WorkoutTemplateExercises extends Table {
   TextColumn get id => text()();
-  TextColumn get templateId => text().references(WorkoutTemplates, #id, onDelete: KeyAction.cascade)();
+  TextColumn get templateId =>
+      text().references(WorkoutTemplates, #id, onDelete: KeyAction.cascade)();
   TextColumn get exerciseId => text().references(ExerciseDefinitions, #id)();
   IntColumn get sortOrder => integer()();
 
@@ -163,26 +177,28 @@ class WorkoutTemplateExercises extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [
-  UserPreferences,
-  GymSchedules,
-  ReminderOffsets,
-  Attendances,
-  Workouts,
-  ExerciseDefinitions,
-  WorkoutExercises,
-  WorkoutSets,
-  AchievementAwards,
-  XpEvents,
-  NotificationScheduleLogs,
-  WorkoutTemplates,
-  WorkoutTemplateExercises,
-])
+@DriftDatabase(
+  tables: [
+    UserPreferences,
+    GymSchedules,
+    ReminderOffsets,
+    Attendances,
+    Workouts,
+    ExerciseDefinitions,
+    WorkoutExercises,
+    WorkoutSets,
+    AchievementAwards,
+    XpEvents,
+    NotificationScheduleLogs,
+    WorkoutTemplates,
+    WorkoutTemplateExercises,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'gymbuddy_db');
@@ -196,24 +212,34 @@ class AppDatabase extends _$AppDatabase {
       },
       onUpgrade: (Migrator m, int from, int to) async {
         if (from < 2) {
-          await m.addColumn(exerciseDefinitions, exerciseDefinitions.isFavorite);
+          await m.addColumn(
+            exerciseDefinitions,
+            exerciseDefinitions.isFavorite,
+          );
         }
         if (from < 4) {
           await m.createTable(workoutTemplates);
           await m.createTable(workoutTemplateExercises);
         }
+        if (from < 5) {
+          await m.addColumn(workoutSets, workoutSets.rir);
+          await m.addColumn(workoutSets, workoutSets.rpe);
+          await m.addColumn(workouts, workouts.pausedAt);
+          await m.addColumn(workouts, workouts.pausedSeconds);
+          await m.addColumn(workouts, workouts.totalDurationSeconds);
+        }
       },
       beforeOpen: (details) async {
         // Enable foreign keys for cascade deletes
         await customStatement('PRAGMA foreign_keys = ON;');
-        
+
         // Batch 8: Automated Data Verification
         // Clean up any dangling sets or exercises that might exist from before FK enforcement
         await customStatement('''
           DELETE FROM workout_sets 
           WHERE workout_exercise_id NOT IN (SELECT id FROM workout_exercises)
         ''');
-        
+
         await customStatement('''
           DELETE FROM workout_exercises 
           WHERE workout_id NOT IN (SELECT id FROM workouts)

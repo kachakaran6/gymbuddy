@@ -36,14 +36,19 @@ class WorkoutSummaryScreen extends StatelessWidget {
           child: FilledButton(
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
             onPressed: () {
               HapticFeedback.mediumImpact();
               PlayServices.requestReview();
               Navigator.of(context).pop();
             },
-            child: const Text('Back to Home', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Back to Home',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       ),
@@ -53,22 +58,38 @@ class WorkoutSummaryScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Hero Celebration Card
+              // Hero Celebration / Summary Card
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ],
+                    colors: workout.totalCompletedSets > 0
+                        ? [
+                            theme.colorScheme.primary,
+                            theme.colorScheme.primary.withValues(alpha: 0.8),
+                          ]
+                        : [
+                            isDark
+                                ? const Color(0xFF2C2C2C)
+                                : const Color(0xFF757575),
+                            isDark
+                                ? const Color(0xFF1E1E1E)
+                                : const Color(0xFF9E9E9E),
+                          ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                      color:
+                          (workout.totalCompletedSets > 0
+                                  ? theme.colorScheme.primary
+                                  : Colors.black)
+                              .withValues(alpha: 0.2),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -83,12 +104,20 @@ class WorkoutSummaryScreen extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.emoji_events_rounded, size: 36, color: Colors.white),
+                      child: Icon(
+                        workout.totalCompletedSets > 0
+                            ? Icons.emoji_events_rounded
+                            : Icons.check_circle_outline_rounded,
+                        size: 36,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'WORKOUT COMPLETE!',
-                      style: TextStyle(
+                    Text(
+                      workout.totalCompletedSets > 0
+                          ? 'WORKOUT COMPLETE!'
+                          : 'SESSION SAVED (EMPTY)',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.w900,
@@ -97,19 +126,32 @@ class WorkoutSummaryScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.bolt_rounded, color: Colors.amber, size: 16),
-                          SizedBox(width: 4),
+                          Icon(
+                            workout.totalCompletedSets > 0
+                                ? Icons.bolt_rounded
+                                : Icons.info_outline_rounded,
+                            color: workout.totalCompletedSets > 0
+                                ? Colors.amber
+                                : Colors.white70,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
                           Text(
-                            '+15 XP EARNED',
-                            style: TextStyle(
+                            workout.totalCompletedSets > 0
+                                ? '+15 XP EARNED'
+                                : '0 XP • NO SETS COMPLETED',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
                               fontSize: 12,
@@ -131,7 +173,11 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.5,
+                    ),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -142,16 +188,25 @@ class WorkoutSummaryScreen extends StatelessWidget {
                             theme,
                             icon: Icons.timer_outlined,
                             label: 'Duration',
-                            value: GymDateUtils.formatDuration(workout.durationSeconds),
+                            value: GymDateUtils.formatDuration(
+                              workout.durationSeconds,
+                            ),
                           ),
                         ),
-                        Container(width: 1, height: 48, color: theme.dividerColor),
+                        Container(
+                          width: 1,
+                          height: 48,
+                          color: theme.dividerColor,
+                        ),
                         Expanded(
                           child: _buildMetricTile(
                             theme,
                             icon: Icons.fitness_center_rounded,
                             label: 'Total Volume',
-                            value: GymDateUtils.formatWeight(workout.totalVolumeKg, weightUnit),
+                            value: GymDateUtils.formatWeight(
+                              workout.totalVolumeKg,
+                              weightUnit,
+                            ),
                           ),
                         ),
                       ],
@@ -167,13 +222,19 @@ class WorkoutSummaryScreen extends StatelessWidget {
                             value: '${workout.totalCompletedSets}',
                           ),
                         ),
-                        Container(width: 1, height: 48, color: theme.dividerColor),
+                        Container(
+                          width: 1,
+                          height: 48,
+                          color: theme.dividerColor,
+                        ),
                         Expanded(
                           child: _buildMetricTile(
                             theme,
                             icon: Icons.local_fire_department_outlined,
                             label: 'Est. Burn',
-                            value: '~${workout.totalCompletedSets * 25} kcal',
+                            value: workout.totalCompletedSets > 0
+                                ? '~${workout.totalCompletedSets * 25} kcal'
+                                : '0 kcal',
                           ),
                         ),
                       ],
@@ -187,71 +248,93 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 const SizedBox(height: 22),
                 Row(
                   children: [
-                    const Icon(Icons.star_rounded, color: Colors.amber, size: 22),
+                    const Icon(
+                      Icons.star_rounded,
+                      color: Colors.amber,
+                      size: 22,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Personal Records Broken!',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                ...newPRs.map((pr) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                ...newPRs.map(
+                  (pr) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(
+                        alpha: isDark ? 0.12 : 0.08,
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: const BoxDecoration(
-                              color: Colors.amber,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.emoji_events_rounded, color: Colors.black87, size: 20),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: const BoxDecoration(
+                            color: Colors.amber,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  pr.exerciseName,
-                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-                                ),
-                                Text(
-                                  pr.displayValue,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          child: const Icon(
+                            Icons.emoji_events_rounded,
+                            color: Colors.black87,
+                            size: 20,
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.amber,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'NEW PR',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 11,
-                                letterSpacing: 0.5,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                pr.exerciseName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
                               ),
+                              Text(
+                                pr.displayValue,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'NEW PR',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                        ],
-                      ),
-                    )),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
 
               // Newly Unlocked Badges Section
@@ -259,55 +342,76 @@ class WorkoutSummaryScreen extends StatelessWidget {
                 const SizedBox(height: 22),
                 Row(
                   children: [
-                    const Icon(Icons.workspace_premium_rounded, color: Color(0xFF8B5CF6), size: 22),
+                    const Icon(
+                      Icons.workspace_premium_rounded,
+                      color: Color(0xFF8B5CF6),
+                      size: 22,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Newly Unlocked Badges!',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                ...newBadges.map((badge) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withValues(alpha: isDark ? 0.12 : 0.08),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.4)),
+                ...newBadges.map(
+                  (badge) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(
+                        0xFF8B5CF6,
+                      ).withValues(alpha: isDark ? 0.12 : 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.workspace_premium, color: Color(0xFF8B5CF6), size: 22),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF8B5CF6,
+                            ).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  badge.title,
-                                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-                                ),
-                                Text(
-                                  badge.description,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          child: const Icon(
+                            Icons.workspace_premium,
+                            color: Color(0xFF8B5CF6),
+                            size: 22,
                           ),
-                        ],
-                      ),
-                    )),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                badge.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              Text(
+                                badge.description,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ],
           ),

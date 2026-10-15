@@ -19,6 +19,8 @@ import '../workout/exercise_detail_screen.dart';
 import '../workout/exercise_library_screen.dart';
 import '../workout/templates_screen.dart';
 import '../workout/workout_logger_screen.dart';
+import '../workout/quick_log_sheet.dart';
+import 'widgets/active_workout_banner.dart';
 
 enum WorkoutMode { all, gym, home }
 
@@ -50,15 +52,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       orElse: () => const GymScheduleModel(weekday: 1, enabled: false),
     );
 
-    final isCheckedIn = attState.attendances[todayIso] == AttendanceStatus.checkedIn;
+    final isCheckedIn =
+        attState.attendances[todayIso] == AttendanceStatus.checkedIn;
     final streak = attState.streak.currentStreak;
 
     // Filter recommended exercises based on mode
-    final recommended = kExercises.where((ex) {
-      if (_mode == WorkoutMode.home) return ex.isHomeExercise;
-      if (_mode == WorkoutMode.gym) return !ex.isHomeExercise;
-      return true;
-    }).take(8).toList();
+    final recommended = kExercises
+        .where((ex) {
+          if (_mode == WorkoutMode.home) return ex.isHomeExercise;
+          if (_mode == WorkoutMode.gym) return !ex.isHomeExercise;
+          return true;
+        })
+        .take(8)
+        .toList();
 
     return Scaffold(
       backgroundColor: gc.bg,
@@ -75,7 +81,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               // 2. Active Workout Alert Banner (if active)
               if (activeWorkout != null) ...[
-                _buildActiveWorkoutBanner(context, gc),
+                const ActiveWorkoutHomeBanner(),
                 const SizedBox(height: 18),
               ],
 
@@ -109,12 +115,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   GestureDetector(
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const TemplatesScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const TemplatesScreen(),
+                        ),
                       );
                     },
                     child: Text(
                       'VIEW ALL',
-                      style: AppTheme.d(12, weight: FontWeight.w600, color: gc.accent, letterSpacing: 1.5),
+                      style: AppTheme.d(
+                        12,
+                        weight: FontWeight.w600,
+                        color: gc.accent,
+                        letterSpacing: 1.5,
+                      ),
                     ),
                   ),
                 ],
@@ -127,20 +140,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Kicker(_mode == WorkoutMode.home ? 'HOME EXERCISES' : 'FEATURED EXERCISES'),
+                  Kicker(
+                    _mode == WorkoutMode.home
+                        ? 'HOME EXERCISES'
+                        : 'FEATURED EXERCISES',
+                  ),
                   GestureDetector(
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => ExerciseLibraryScreen(
-                            initialCategory: _mode == WorkoutMode.home ? 'Home Workout' : null,
+                            initialCategory: _mode == WorkoutMode.home
+                                ? 'Home Workout'
+                                : null,
                           ),
                         ),
                       );
                     },
                     child: Text(
                       'BROWSE ALL',
-                      style: AppTheme.d(12, weight: FontWeight.w600, color: gc.accent, letterSpacing: 1.5),
+                      style: AppTheme.d(
+                        12,
+                        weight: FontWeight.w600,
+                        color: gc.accent,
+                        letterSpacing: 1.5,
+                      ),
                     ),
                   ),
                 ],
@@ -157,7 +181,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ==========================================
   // TOP BAR
   // ==========================================
-  Widget _buildTopBar(BuildContext context, GymColors gc, int streak, StreakModel streakModel) {
+  Widget _buildTopBar(
+    BuildContext context,
+    GymColors gc,
+    int streak,
+    StreakModel streakModel,
+  ) {
     final now = DateTime.now();
     final dateLabel = GymDateUtils.formatDate(now);
 
@@ -198,7 +227,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: gc.bgRaised,
                   border: Border.all(color: gc.border),
@@ -207,15 +239,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.local_fire_department_rounded, size: 16, color: gc.accent),
+                    Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 16,
+                      color: gc.accent,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '$streak',
-                      style: AppTheme.d(13, weight: FontWeight.w700, color: gc.accent),
+                      style: AppTheme.d(
+                        13,
+                        weight: FontWeight.w700,
+                        color: gc.accent,
+                      ),
                     ),
                   ],
                 ),
               ),
+            ),
+            const SizedBox(width: 6),
+            // Quick Log button
+            _roundIconBtn(
+              gc,
+              icon: Icons.bolt_rounded,
+              tooltip: 'Quick Log Exercise',
+              onTap: () => QuickLogSheet.show(context),
             ),
             const SizedBox(width: 6),
             // How to use walkthrough button
@@ -274,62 +322,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           shape: BoxShape.circle,
           border: Border.all(color: gc.border),
         ),
-        child: Center(
-          child: Icon(icon, size: 18, color: gc.textSecondary),
-        ),
-      ),
-    );
-  }
-
-  // ==========================================
-  // ACTIVE WORKOUT BANNER
-  // ==========================================
-  Widget _buildActiveWorkoutBanner(BuildContext context, GymColors gc) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const WorkoutLoggerScreen()),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: gc.accentSoft,
-          border: Border.all(color: gc.accent),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: gc.accent,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.play_arrow_rounded, size: 20, color: Colors.black),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'WORKOUT IN PROGRESS',
-                    style: AppTheme.d(13, weight: FontWeight.w700, color: gc.accent, letterSpacing: 1),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Tap to resume live logging & rest timer',
-                    style: AppTheme.s(12, color: gc.text),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: gc.accent, size: 20),
-          ],
-        ),
+        child: Center(child: Icon(icon, size: 18, color: gc.textSecondary)),
       ),
     );
   }
@@ -340,34 +333,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildModeSelector(GymColors gc) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: SegToggle(
-        [
-          SegOption(
-            'All Workouts',
-            _mode == WorkoutMode.all,
-            () => setState(() => _mode = WorkoutMode.all),
-          ),
-          SegOption(
-            'Gym Floor',
-            _mode == WorkoutMode.gym,
-            () => setState(() => _mode = WorkoutMode.gym),
-            icon: Icons.fitness_center_rounded,
-          ),
-          SegOption(
-            'Home Workout',
-            _mode == WorkoutMode.home,
-            () => setState(() => _mode = WorkoutMode.home),
-            icon: Icons.home_rounded,
-          ),
-        ],
-      ),
+      child: SegToggle([
+        SegOption(
+          'All Workouts',
+          _mode == WorkoutMode.all,
+          () => setState(() => _mode = WorkoutMode.all),
+        ),
+        SegOption(
+          'Gym Floor',
+          _mode == WorkoutMode.gym,
+          () => setState(() => _mode = WorkoutMode.gym),
+          icon: Icons.fitness_center_rounded,
+        ),
+        SegOption(
+          'Home Workout',
+          _mode == WorkoutMode.home,
+          () => setState(() => _mode = WorkoutMode.home),
+          icon: Icons.home_rounded,
+        ),
+      ]),
     );
   }
 
   // ==========================================
   // FOCUS HERO CARD
   // ==========================================
-  Widget _buildFocusHero(BuildContext context, GymColors gc, bool isCheckedIn, bool isScheduledToday) {
+  Widget _buildFocusHero(
+    BuildContext context,
+    GymColors gc,
+    bool isCheckedIn,
+    bool isScheduledToday,
+  ) {
     String title;
     String subtitle;
     int exerciseCount;
@@ -419,7 +415,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Image.asset(
                   'assets/img/runner.png',
                   fit: BoxFit.fitHeight,
-                  errorBuilder: (_, __, ___) => const SizedBox(),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox(),
                 ),
               ),
             ),
@@ -428,11 +425,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Kicker(isScheduledToday ? "TODAY'S SCHEDULED FOCUS" : "TODAY'S FOCUS"),
+                  Kicker(
+                    isScheduledToday
+                        ? "TODAY'S SCHEDULED FOCUS"
+                        : "TODAY'S FOCUS",
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     title,
-                    style: AppTheme.d(38, weight: FontWeight.w800, color: gc.text, letterSpacing: 0.5, height: 1.05),
+                    style: AppTheme.d(
+                      38,
+                      weight: FontWeight.w800,
+                      color: gc.text,
+                      letterSpacing: 0.5,
+                      height: 1.05,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -440,18 +447,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     style: AppTheme.s(13, color: gc.textSecondary),
                   ),
                   const SizedBox(height: 20),
-                  PrimaryButton(
-                    label: 'Start Workout',
-                    icon: Icons.play_arrow_rounded,
-                    onTap: () async {
-                      HapticFeedback.mediumImpact();
-                      await ref.read(activeWorkoutProvider.notifier).startWorkout();
-                      if (context.mounted) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const WorkoutLoggerScreen()),
-                        );
-                      }
-                    },
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: PrimaryButton(
+                          label: 'Start Workout',
+                          icon: Icons.play_arrow_rounded,
+                          onTap: () async {
+                            HapticFeedback.mediumImpact();
+                            await ref
+                                .read(activeWorkoutProvider.notifier)
+                                .startWorkout();
+                            if (context.mounted) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const WorkoutLoggerScreen(),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        flex: 2,
+                        child: SecondaryButton(
+                          label: 'Quick Log',
+                          icon: Icons.bolt_rounded,
+                          height: 54,
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            QuickLogSheet.show(context);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -481,17 +512,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               Text(
                 'WEEKLY CONSISTENCY',
-                style: AppTheme.d(11, weight: FontWeight.w600, color: gc.textSecondary, letterSpacing: 1.5),
+                style: AppTheme.d(
+                  11,
+                  weight: FontWeight.w600,
+                  color: gc.textSecondary,
+                  letterSpacing: 1.5,
+                ),
               ),
               GestureDetector(
                 onTap: () async {
                   HapticFeedback.mediumImpact();
-                  final success = await ref.read(attendanceProvider.notifier).checkInToday();
+                  final success = await ref
+                      .read(attendanceProvider.notifier)
+                      .checkInToday();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          success ? 'Checked in for today! (+10 XP)' : 'Already checked in today!',
+                          success
+                              ? 'Checked in for today! (+10 XP)'
+                              : 'Already checked in today!',
                         ),
                         duration: const Duration(seconds: 2),
                       ),
@@ -501,14 +541,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Row(
                   children: [
                     Icon(
-                      isCheckedIn ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
+                      isCheckedIn
+                          ? Icons.check_circle_rounded
+                          : Icons.add_circle_outline_rounded,
                       size: 16,
                       color: isCheckedIn ? gc.sage : gc.accent,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       isCheckedIn ? 'Checked In' : 'Check In',
-                      style: AppTheme.s(12, weight: FontWeight.w600, color: isCheckedIn ? gc.sage : gc.accent),
+                      style: AppTheme.s(
+                        12,
+                        weight: FontWeight.w600,
+                        color: isCheckedIn ? gc.sage : gc.accent,
+                      ),
                     ),
                   ],
                 ),
@@ -560,7 +606,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     child: done
                         ? Center(
-                            child: Icon(Icons.check, size: 16, color: gc.onEmber),
+                            child: Icon(
+                              Icons.check,
+                              size: 16,
+                              color: gc.onEmber,
+                            ),
                           )
                         : null,
                   ),
@@ -594,7 +644,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 2),
                   Text(
                     'Target: ${_selectedMuscle.toUpperCase()}',
-                    style: AppTheme.d(18, weight: FontWeight.w700, color: gc.text),
+                    style: AppTheme.d(
+                      18,
+                      weight: FontWeight.w700,
+                      color: gc.text,
+                    ),
                   ),
                 ],
               ),
@@ -619,11 +673,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             height: 180,
             child: Center(
               child: BodyHeatMap(
-                intensity: {
-                  _selectedMuscle: 0.9,
-                  'chest': 0.6,
-                  'triceps': 0.4,
-                },
+                intensity: {_selectedMuscle: 0.9, 'chest': 0.6, 'triceps': 0.4},
                 focusMuscle: _selectedMuscle,
                 onMuscleTap: (muscle) {
                   HapticFeedback.selectionClick();
@@ -659,12 +709,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 Text(
                   'CURRENT STREAK',
-                  style: AppTheme.d(11, weight: FontWeight.w600, color: gc.textSecondary, letterSpacing: 1),
+                  style: AppTheme.d(
+                    11,
+                    weight: FontWeight.w600,
+                    color: gc.textSecondary,
+                    letterSpacing: 1,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '$streak Days',
-                  style: AppTheme.d(26, weight: FontWeight.w700, color: gc.accent),
+                  style: AppTheme.d(
+                    26,
+                    weight: FontWeight.w700,
+                    color: gc.accent,
+                  ),
                 ),
               ],
             ),
@@ -680,12 +739,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 Text(
                   'TOTAL XP',
-                  style: AppTheme.d(11, weight: FontWeight.w600, color: gc.textSecondary, letterSpacing: 1),
+                  style: AppTheme.d(
+                    11,
+                    weight: FontWeight.w600,
+                    color: gc.textSecondary,
+                    letterSpacing: 1,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '$xp XP',
-                  style: AppTheme.d(26, weight: FontWeight.w700, color: gc.text),
+                  style: AppTheme.d(
+                    26,
+                    weight: FontWeight.w700,
+                    color: gc.text,
+                  ),
                 ),
               ],
             ),
@@ -757,14 +825,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     children: [
                       Icon(r['icon'] as IconData, size: 20, color: gc.accent),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: gc.bgRaised2,
                           borderRadius: BorderRadius.circular(100),
                         ),
                         child: Text(
                           r['badge'] as String,
-                          style: AppTheme.s(10, weight: FontWeight.w600, color: gc.textSecondary),
+                          style: AppTheme.s(
+                            10,
+                            weight: FontWeight.w600,
+                            color: gc.textSecondary,
+                          ),
                         ),
                       ),
                     ],
@@ -774,7 +849,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     children: [
                       Text(
                         r['title'] as String,
-                        style: AppTheme.d(15, weight: FontWeight.w700, color: gc.text),
+                        style: AppTheme.d(
+                          15,
+                          weight: FontWeight.w700,
+                          color: gc.text,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -799,7 +878,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ==========================================
   // EXERCISES CAROUSEL
   // ==========================================
-  Widget _buildExercisesCarousel(BuildContext context, GymColors gc, List<Exercise> exercises) {
+  Widget _buildExercisesCarousel(
+    BuildContext context,
+    GymColors gc,
+    List<Exercise> exercises,
+  ) {
     return SizedBox(
       height: 156,
       child: ListView.builder(
@@ -810,7 +893,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           return GestureDetector(
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ExerciseDetailScreen(exercise: ex)),
+                MaterialPageRoute(
+                  builder: (_) => ExerciseDetailScreen(exercise: ex),
+                ),
               );
             },
             child: Container(
@@ -831,19 +916,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       color: gc.bgRaised2,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Center(
-                      child: ExerciseArt(
-                        slug: ex.art,
-                        height: 70,
-                      ),
-                    ),
+                    child: Center(child: ExerciseArt(slug: ex.art, height: 70)),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     ex.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTheme.d(13, weight: FontWeight.w600, color: gc.text),
+                    style: AppTheme.d(
+                      13,
+                      weight: FontWeight.w600,
+                      color: gc.text,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(

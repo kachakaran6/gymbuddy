@@ -1,12 +1,6 @@
 export 'muscle_progress_models.dart';
 
-enum AttendanceStatus {
-  planned,
-  checkedIn,
-  missed,
-  rest,
-  excused,
-}
+enum AttendanceStatus { planned, checkedIn, missed, rest, excused }
 
 extension AttendanceStatusExtension on AttendanceStatus {
   String toName() => name;
@@ -19,17 +13,9 @@ extension AttendanceStatusExtension on AttendanceStatus {
   }
 }
 
-enum WorkoutStatus {
-  active,
-  completed,
-  discarded,
-}
+enum WorkoutStatus { active, completed, discarded }
 
-enum SetType {
-  warmup,
-  normal,
-  drop,
-}
+enum SetType { warmup, normal, drop }
 
 class UserPreferencesModel {
   final int id;
@@ -72,8 +58,10 @@ class UserPreferencesModel {
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
       notificationPermissionState:
           notificationPermissionState ?? this.notificationPermissionState,
-      reviewLastRequestedAt: reviewLastRequestedAt ?? this.reviewLastRequestedAt,
-      reviewEligibleCompletedWorkouts: reviewEligibleCompletedWorkouts ??
+      reviewLastRequestedAt:
+          reviewLastRequestedAt ?? this.reviewLastRequestedAt,
+      reviewEligibleCompletedWorkouts:
+          reviewEligibleCompletedWorkouts ??
           this.reviewEligibleCompletedWorkouts,
       schemaVersion: schemaVersion ?? this.schemaVersion,
     );
@@ -154,6 +142,31 @@ class ExerciseModel {
     this.isFavorite = false,
     required this.createdAt,
   });
+
+  bool get isBodyweight {
+    final n = name.toLowerCase();
+    return n.contains('push-up') ||
+        n.contains('pushup') ||
+        n.contains('pull-up') ||
+        n.contains('pullup') ||
+        n.contains('dip') ||
+        n.contains('chin-up') ||
+        n.contains('chinup') ||
+        n.contains('bodyweight') ||
+        n.contains('crunch') ||
+        n.contains('plank');
+  }
+
+  bool get isUnilateral {
+    final n = name.toLowerCase();
+    return n.contains('lunge') ||
+        n.contains('single') ||
+        n.contains('split squat') ||
+        n.contains('step-up') ||
+        n.contains('one arm') ||
+        n.contains('one-arm') ||
+        n.contains('per side');
+  }
 }
 
 class WorkoutSetModel {
@@ -166,6 +179,8 @@ class WorkoutSetModel {
   final int? durationSeconds;
   final double? distanceMeters;
   final int? estimatedCalories;
+  final int? rir;
+  final double? rpe;
   final DateTime? completedAt;
 
   const WorkoutSetModel({
@@ -178,6 +193,8 @@ class WorkoutSetModel {
     this.durationSeconds,
     this.distanceMeters,
     this.estimatedCalories,
+    this.rir,
+    this.rpe,
     this.completedAt,
   });
 
@@ -189,6 +206,8 @@ class WorkoutSetModel {
     int? durationSeconds,
     double? distanceMeters,
     int? estimatedCalories,
+    int? rir,
+    double? rpe,
     DateTime? completedAt,
   }) {
     return WorkoutSetModel(
@@ -201,6 +220,8 @@ class WorkoutSetModel {
       durationSeconds: durationSeconds ?? this.durationSeconds,
       distanceMeters: distanceMeters ?? this.distanceMeters,
       estimatedCalories: estimatedCalories ?? this.estimatedCalories,
+      rir: rir ?? this.rir,
+      rpe: rpe ?? this.rpe,
       completedAt: completedAt ?? this.completedAt,
     );
   }
@@ -229,6 +250,9 @@ class WorkoutSessionModel {
   final String? attendanceDate;
   final DateTime startedAt;
   final DateTime? endedAt;
+  final DateTime? pausedAt;
+  final int pausedSeconds;
+  final int? totalDurationSeconds;
   final WorkoutStatus status;
   final String? notes;
   final List<WorkoutExerciseModel> exercises;
@@ -238,21 +262,55 @@ class WorkoutSessionModel {
     this.attendanceDate,
     required this.startedAt,
     this.endedAt,
+    this.pausedAt,
+    this.pausedSeconds = 0,
+    this.totalDurationSeconds,
     required this.status,
     this.notes,
     this.exercises = const [],
   });
 
+  bool get isPaused => pausedAt != null;
+
+  bool get isQuickLog =>
+      notes?.startsWith('[Quick Log]') == true || notes == 'Quick Log';
+
+  /// Stale warning if running active for >= 4 hours
+  bool get isStaleWarning =>
+      status == WorkoutStatus.active && durationSeconds >= 4 * 3600;
+
+  /// Stale session if running active for >= 12 hours
+  bool get isStale =>
+      status == WorkoutStatus.active && durationSeconds >= 12 * 3600;
+
   int get durationSeconds {
-    if (exercises.isEmpty) return 0;
-    final end = endedAt ?? DateTime.now();
-    return end.difference(startedAt).inSeconds;
+    if (totalDurationSeconds != null) {
+      return totalDurationSeconds!;
+    }
+    if (endedAt != null) {
+      final elapsed = endedAt!.difference(startedAt).inSeconds - pausedSeconds;
+      return elapsed > 0 ? elapsed : 0;
+    }
+    if (pausedAt != null) {
+      final elapsed = pausedAt!.difference(startedAt).inSeconds - pausedSeconds;
+      return elapsed > 0 ? elapsed : 0;
+    }
+    final elapsed =
+        DateTime.now().difference(startedAt).inSeconds - pausedSeconds;
+    return elapsed > 0 ? elapsed : 0;
   }
 
   int get totalCompletedSets {
     int total = 0;
     for (var ex in exercises) {
-      total += ex.sets.where((s) => s.completedAt != null || s.reps != null || s.durationSeconds != null).length;
+      total += ex.sets
+          .where(
+            (s) =>
+                s.completedAt != null ||
+                (s.reps != null && s.reps! > 0) ||
+                (s.durationSeconds != null && s.durationSeconds! > 0),
+          )
+          .length;
     }
     return total;
   }
@@ -261,19 +319,50 @@ class WorkoutSessionModel {
     double vol = 0;
     for (var ex in exercises) {
       for (var s in ex.sets) {
-        if (s.weightKg != null && s.reps != null && s.weightKg! > 0 && s.reps! > 0) {
+        if (s.weightKg != null &&
+            s.reps != null &&
+            s.weightKg! > 0 &&
+            s.reps! > 0) {
           vol += (s.weightKg! * s.reps!);
         }
       }
     }
     return vol;
   }
+
+  WorkoutSessionModel copyWith({
+    String? id,
+    String? attendanceDate,
+    DateTime? startedAt,
+    DateTime? endedAt,
+    DateTime? pausedAt,
+    bool clearPausedAt = false,
+    int? pausedSeconds,
+    int? totalDurationSeconds,
+    WorkoutStatus? status,
+    String? notes,
+    List<WorkoutExerciseModel>? exercises,
+  }) {
+    return WorkoutSessionModel(
+      id: id ?? this.id,
+      attendanceDate: attendanceDate ?? this.attendanceDate,
+      startedAt: startedAt ?? this.startedAt,
+      endedAt: endedAt ?? this.endedAt,
+      pausedAt: clearPausedAt ? null : (pausedAt ?? this.pausedAt),
+      pausedSeconds: pausedSeconds ?? this.pausedSeconds,
+      totalDurationSeconds: totalDurationSeconds ?? this.totalDurationSeconds,
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
+      exercises: exercises ?? this.exercises,
+    );
+  }
 }
 
 class PersonalRecordModel {
   final String exerciseId;
   final String exerciseName;
-  final String metricName; // 'max_weight', 'max_reps', 'max_volume', 'max_duration', 'max_distance'
+  final String
+  metricName; // 'max_weight', 'max_reps', 'max_volume', 'max_duration', 'max_distance'
   final double value;
   final String displayValue;
   final DateTime achievedAt;

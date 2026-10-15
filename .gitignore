@@ -55,3 +55,5 @@ GymMane-main/
 opengym-main/
 flutter-applcations-*.json
 *-*.json
+android/.project
+android/.settings/
