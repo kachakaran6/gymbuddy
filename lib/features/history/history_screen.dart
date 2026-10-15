@@ -15,17 +15,15 @@ class HistoryScreen extends ConsumerWidget {
     final prefs = ref.watch(userPreferencesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Workout History'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Workout History'), centerTitle: true),
       body: workoutsAsync.when(
         data: (workouts) {
           if (workouts.isEmpty) {
             return const GymEmptyState(
               icon: Icons.history_rounded,
               title: 'No workouts yet',
-              body: 'Your completed sessions will appear here.\nComplete a check-in and log your first workout.',
+              body:
+                  'Your completed sessions will appear here.\nComplete a check-in and log your first workout.',
             );
           }
 
@@ -58,10 +56,7 @@ class _WorkoutHistoryCard extends StatefulWidget {
   final WorkoutSessionModel workout;
   final String weightUnit;
 
-  const _WorkoutHistoryCard({
-    required this.workout,
-    required this.weightUnit,
-  });
+  const _WorkoutHistoryCard({required this.workout, required this.weightUnit});
 
   @override
   State<_WorkoutHistoryCard> createState() => _WorkoutHistoryCardState();
@@ -106,7 +101,9 @@ class _WorkoutHistoryCardState extends State<_WorkoutHistoryCard>
     final workout = widget.workout;
     final isDark = theme.brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF262626) : const Color(0xFFE5E5E5);
+    final borderColor = isDark
+        ? const Color(0xFF262626)
+        : const Color(0xFFE5E5E5);
 
     final dateStr = GymDateUtils.formatDate(workout.startedAt);
     final timeStr = GymDateUtils.formatTimeOfDay(
@@ -114,8 +111,10 @@ class _WorkoutHistoryCardState extends State<_WorkoutHistoryCard>
       workout.startedAt.minute,
     );
     final duration = GymDateUtils.formatDuration(workout.durationSeconds);
-    final volume =
-        GymDateUtils.formatWeight(workout.totalVolumeKg, widget.weightUnit);
+    final volume = GymDateUtils.formatWeight(
+      workout.totalVolumeKg,
+      widget.weightUnit,
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -139,12 +138,18 @@ class _WorkoutHistoryCardState extends State<_WorkoutHistoryCard>
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF16A34A).withValues(alpha: 0.12),
+                      color: workout.isQuickLog
+                          ? Colors.amber.withValues(alpha: 0.15)
+                          : const Color(0xFF16A34A).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    child: const Icon(
-                      Icons.check_circle_rounded,
-                      color: Color(0xFF16A34A),
+                    child: Icon(
+                      workout.isQuickLog
+                          ? Icons.bolt_rounded
+                          : Icons.check_circle_rounded,
+                      color: workout.isQuickLog
+                          ? Colors.amber
+                          : const Color(0xFF16A34A),
                       size: 22,
                     ),
                   ),
@@ -162,7 +167,9 @@ class _WorkoutHistoryCardState extends State<_WorkoutHistoryCard>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '$timeStr  •  $duration  •  ${workout.exercises.length} exercises',
+                          workout.isQuickLog
+                              ? '$timeStr  •  ⚡ Quick Log  •  ${workout.exercises.isNotEmpty ? (workout.exercises.first.exercise?.name ?? "Exercise") : "Quick Log"}'
+                              : '$timeStr  •  $duration  •  ${workout.exercises.length} exercises',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -216,7 +223,8 @@ class _WorkoutHistoryCardState extends State<_WorkoutHistoryCard>
                     children: [
                       ...workout.exercises.map((ex) {
                         final exName = ex.exercise?.name ?? 'Exercise';
-                        final setsText = '${ex.sets.length} set${ex.sets.length == 1 ? '' : 's'}';
+                        final setsText =
+                            '${ex.sets.length} set${ex.sets.length == 1 ? '' : 's'}';
                         return Padding(
                           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                           child: Row(
