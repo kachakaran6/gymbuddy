@@ -25,11 +25,11 @@ class GymRepository {
       // Create initial singleton
       await db
           .into(db.userPreferences)
-          .insert(
+          .insertOnConflictUpdate(
             UserPreferencesCompanion.insert(
               id: const Value(1),
-              themeMode: const Value('system'),
-              accentKey: const Value('indigo'),
+              themeMode: const Value('dark'),
+              accentKey: const Value('amber'),
               weightUnit: const Value('kg'),
               onboardingComplete: const Value(false),
             ),
@@ -51,8 +51,9 @@ class GymRepository {
   }
 
   Future<void> updateUserPreferences(UserPreferencesModel model) async {
-    await (db.update(db.userPreferences)..where((t) => t.id.equals(1))).write(
+    await db.into(db.userPreferences).insertOnConflictUpdate(
       UserPreferencesCompanion(
+        id: const Value(1),
         themeMode: Value(model.themeMode),
         accentKey: Value(model.accentKey),
         weightUnit: Value(model.weightUnit),
@@ -83,6 +84,7 @@ class GymRepository {
                 gymMinute: const Value(0),
                 cutoffOffsetMinutes: const Value(60),
               ),
+              mode: InsertMode.insertOrIgnore,
             );
       }
     }
@@ -100,6 +102,7 @@ class GymRepository {
                 enabled: const Value(true),
                 sortOrder: idx++,
               ),
+              mode: InsertMode.insertOrIgnore,
             );
       }
     }
@@ -118,6 +121,7 @@ class GymRepository {
                 isCustom: Value(ex.isCustom),
                 createdAt: Value(ex.createdAt),
               ),
+              mode: InsertMode.insertOrIgnore,
             );
       }
     }
@@ -553,8 +557,9 @@ class GymRepository {
     )..where((t) => t.id.equals(workoutId))).getSingleOrNull();
     if (workoutRow == null ||
         workoutRow.status != 'active' ||
-        workoutRow.pausedAt != null)
+        workoutRow.pausedAt != null) {
       return null;
+    }
     final now = DateTime.now();
     await (db.update(db.workouts)..where((t) => t.id.equals(workoutId))).write(
       WorkoutsCompanion(pausedAt: Value(now), updatedAt: Value(now)),
@@ -571,8 +576,9 @@ class GymRepository {
     )..where((t) => t.id.equals(workoutId))).getSingleOrNull();
     if (workoutRow == null ||
         workoutRow.status != 'active' ||
-        workoutRow.pausedAt == null)
+        workoutRow.pausedAt == null) {
       return null;
+    }
     final now = DateTime.now();
     final pauseDuration = now.difference(workoutRow.pausedAt!).inSeconds;
     final totalPaused =

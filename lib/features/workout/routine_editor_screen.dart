@@ -39,8 +39,8 @@ class _RoutineEditorScreenState extends ConsumerState<RoutineEditorScreen> {
         } else {
           _exercises.add(ExerciseModel(
             id: tEx.exerciseId,
-            name: tEx.exercise?.name ?? 'Exercise',
-            category: tEx.exercise?.category ?? 'General',
+            name: tEx.exercise.name,
+            category: tEx.exercise.category,
             isCustom: false,
             createdAt: DateTime.now(),
           ));

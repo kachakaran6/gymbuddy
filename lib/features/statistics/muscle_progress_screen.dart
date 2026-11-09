@@ -568,12 +568,11 @@ class MuscleProgressScreen extends ConsumerWidget {
               Icon(icon, size: 14, color: theme.colorScheme.primary),
               const SizedBox(width: 6),
               Text(
-                label.toUpperCase(),
+                label,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 10,
-                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
                 ),
               ),
             ],

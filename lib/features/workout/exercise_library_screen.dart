@@ -149,7 +149,7 @@ class _ExerciseLibraryScreenState extends State<ExerciseLibraryScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _muscles.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (ctx, i) {
                 final m = _muscles[i];
                 final active = _selectedMuscle == m;
@@ -178,7 +178,7 @@ class _ExerciseLibraryScreenState extends State<ExerciseLibraryScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _equipments.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              separatorBuilder: (_, _) => const SizedBox(width: 6),
               itemBuilder: (ctx, i) {
                 final eq = _equipments[i];
                 final active = _selectedEquipment == eq;
@@ -238,15 +238,16 @@ class _ExerciseLibraryScreenState extends State<ExerciseLibraryScreen> {
                       final ex = exercises[i];
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
+                        child: Material(
                           color: isDark ? const Color(0xFF1A1A1A) : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isDark ? const Color(0xFF282828) : const Color(0xFFE2E8F0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: isDark ? const Color(0xFF282828) : const Color(0xFFE2E8F0),
+                            ),
                           ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: ListTile(
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           leading: SizedBox(
                             width: 54,
@@ -274,10 +275,10 @@ class _ExerciseLibraryScreenState extends State<ExerciseLibraryScreen> {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  ex.primary.toUpperCase(),
+                                  ex.primary,
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
                                     color: theme.colorScheme.primary,
                                   ),
                                 ),
@@ -324,8 +325,9 @@ class _ExerciseLibraryScreenState extends State<ExerciseLibraryScreen> {
                             }
                           },
                         ),
-                      );
-                    },
+                      ),
+                    );
+                  },
                   ),
           ),
         ],

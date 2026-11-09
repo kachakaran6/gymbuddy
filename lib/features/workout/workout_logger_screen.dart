@@ -25,18 +25,25 @@ class WorkoutLoggerScreen extends ConsumerStatefulWidget {
 class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
   Timer? _timer;
   bool _staleDialogChecked = false;
+  bool _isStarting = false;
+  String? _startError;
 
   @override
   void initState() {
     super.initState();
     _startTimer();
-    WakelockPlus.enable();
+    try {
+      WakelockPlus.enable().catchError((_) {});
+    } catch (_) {}
   }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
-        setState(() {});
+        final currentWorkout = ref.read(activeWorkoutProvider);
+        if (currentWorkout != null && !currentWorkout.isPaused) {
+          setState(() {});
+        }
       }
     });
   }
@@ -44,7 +51,9 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    WakelockPlus.disable();
+    try {
+      WakelockPlus.disable().catchError((_) {});
+    } catch (_) {}
     super.dispose();
   }
 
@@ -206,11 +215,28 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
     final theme = Theme.of(context);
 
     if (workout == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (mounted) {
-          await ref.read(activeWorkoutProvider.notifier).startWorkout();
-        }
-      });
+      if (!_isStarting && _startError == null) {
+        _isStarting = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          try {
+            await ref.read(activeWorkoutProvider.notifier).startWorkout();
+          } catch (e) {
+            if (mounted) {
+              setState(() {
+                _startError = e.toString();
+              });
+            }
+          } finally {
+            if (mounted) {
+              setState(() {
+                _isStarting = false;
+              });
+            }
+          }
+        });
+      }
+
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
@@ -218,15 +244,47 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Starting workout…'),
-            ],
-          ),
+        body: Center(
+          child: _startError != null
+              ? Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Failed to start workout',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _startError!,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 20),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Retry'),
+                        onPressed: () {
+                          setState(() {
+                            _startError = null;
+                            _isStarting = false;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                )
+              : const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Starting workout…'),
+                  ],
+                ),
         ),
       );
     }
@@ -314,7 +372,8 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
             ),
           ],
         ),
-        body: SafeArea(
+        body: RepaintBoundary(
+          child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -413,8 +472,9 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildBottomActions(
     BuildContext context,
@@ -638,55 +698,69 @@ class _WorkoutLoggerScreenState extends ConsumerState<WorkoutLoggerScreen> {
             ),
           ),
 
-          // Column headers
+          // Column headers (aligned perfectly with row inputs)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
             child: Row(
               children: [
                 SizedBox(
-                  width: 36,
+                  width: 38,
                   child: Text(
-                    'SET',
+                    'Set',
+                    textAlign: TextAlign.center,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    weightUnit,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Reps',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 SizedBox(
-                  width: 68,
+                  width: 52,
                   child: Text(
-                    'TYPE',
+                    'RIR',
+                    textAlign: TextAlign.center,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Text(
-                    weightUnit.toUpperCase(),
-                    style: theme.textTheme.labelSmall?.copyWith(
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 40,
+                  child: Center(
+                    child: Icon(
+                      Icons.check_rounded,
+                      size: 16,
                       color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    'REPS',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 36),
               ],
             ),
           ),
@@ -940,267 +1014,331 @@ class _WorkoutSetRowItemState extends State<_WorkoutSetRowItem> {
     final isCompleted = widget.setModel.completedAt != null;
     final badgeColor = _getSetTypeBadgeColor(widget.setModel.setType, theme);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.base,
-        vertical: 4,
+    return Dismissible(
+      key: ValueKey(widget.setModel.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: Colors.red.withValues(alpha: 0.85),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.delete_outline_rounded, color: Colors.white, size: 22),
+            SizedBox(width: 6),
+            Text(
+              'Delete Set',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
       ),
-      color: isCompleted
-          ? Colors.green.withValues(alpha: 0.04)
-          : Colors.transparent,
-      child: Row(
-        children: [
-          // Set indicator / badge
-          PopupMenuButton<SetType>(
-            tooltip: 'Change set type',
-            initialValue: widget.setModel.setType,
-            onSelected: (val) {
-              HapticFeedback.selectionClick();
-              double? autoWeight = widget.setModel.weightKg;
-              // If changing to drop set and weight is empty, auto-calculate 20% reduction
-              if (val == SetType.drop &&
-                  (autoWeight == null || autoWeight == 0)) {
-                if (widget.setNum > 1) {
-                  // Reduced weight by 20%
-                  autoWeight = ((widget.setModel.weightKg ?? 10) * 0.8);
+      onDismissed: (_) {
+        HapticFeedback.mediumImpact();
+        widget.onDeleteSet();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.base,
+          vertical: 5,
+        ),
+        color: isCompleted
+            ? Colors.green.withValues(alpha: 0.05)
+            : Colors.transparent,
+        child: Row(
+          children: [
+            // Set type / number badge
+            PopupMenuButton<String>(
+              tooltip: 'Set options',
+              initialValue: widget.setModel.setType.name,
+              onSelected: (val) {
+                HapticFeedback.selectionClick();
+                if (val == 'delete') {
+                  widget.onDeleteSet();
+                  return;
                 }
-              }
-              widget.onUpdateSet(
-                widget.setModel.copyWith(setType: val, weightKg: autoWeight),
-              );
-            },
-            itemBuilder: (ctx) => SetType.values.map((st) {
-              return PopupMenuItem(
-                value: st,
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: _getSetTypeBadgeColor(st, theme),
-                        shape: BoxShape.circle,
+                final selectedType = SetType.values.firstWhere(
+                  (st) => st.name == val,
+                  orElse: () => SetType.normal,
+                );
+                double? autoWeight = widget.setModel.weightKg;
+                if (selectedType == SetType.drop &&
+                    (autoWeight == null || autoWeight == 0)) {
+                  if (widget.setNum > 1) {
+                    autoWeight = ((widget.setModel.weightKg ?? 10) * 0.8);
+                  }
+                }
+                widget.onUpdateSet(
+                  widget.setModel.copyWith(
+                    setType: selectedType,
+                    weightKg: autoWeight,
+                  ),
+                );
+              },
+              itemBuilder: (ctx) => [
+                ...SetType.values.map((st) {
+                  return PopupMenuItem<String>(
+                    value: st.name,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: _getSetTypeBadgeColor(st, theme),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          st.name[0].toUpperCase() + st.name.substring(1),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const PopupMenuDivider(),
+                const PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
+                      SizedBox(width: 10),
+                      Text(
+                        'Delete Set',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: badgeColor.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  _getSetTypeAbbr(widget.setModel.setType),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: badgeColor,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Weight input
+            Expanded(
+              flex: 3,
+              child: SizedBox(
+                height: 40,
+                child: TextField(
+                  controller: _weightCtrl,
+                  focusNode: _weightFocus,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: widget.weightUnit,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: theme.dividerColor),
+                    ),
+                  ),
+                  onChanged: (val) {
+                    final doubleVal = double.tryParse(val);
+                    if (doubleVal != null) {
+                      final kgVal = GymDateUtils.toCanonicalKg(
+                        doubleVal,
+                        widget.weightUnit,
+                      );
+                      widget.onUpdateSet(
+                        widget.setModel.copyWith(weightKg: kgVal),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Reps input
+            Expanded(
+              flex: 3,
+              child: SizedBox(
+                height: 40,
+                child: TextField(
+                  controller: _repsCtrl,
+                  focusNode: _repsFocus,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Reps',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: theme.dividerColor),
+                    ),
+                  ),
+                  onChanged: (val) {
+                    final intVal = int.tryParse(val);
+                    if (intVal != null) {
+                      widget.onUpdateSet(widget.setModel.copyWith(reps: intVal));
+                    }
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // RIR / RPE Popover button
+            PopupMenuButton<int?>(
+              tooltip: 'Reps in Reserve',
+              initialValue: widget.setModel.rir,
+              onSelected: (val) {
+                HapticFeedback.selectionClick();
+                widget.onUpdateSet(widget.setModel.copyWith(rir: val));
+              },
+              itemBuilder: (ctx) => [
+                const PopupMenuItem<int?>(
+                  value: null,
+                  child: Text('No RIR rating'),
+                ),
+                const PopupMenuItem<int?>(
+                  value: 0,
+                  child: Text('RIR 0 (Failure / RPE 10)'),
+                ),
+                const PopupMenuItem<int?>(
+                  value: 1,
+                  child: Text('RIR 1 (1 rep left / RPE 9)'),
+                ),
+                const PopupMenuItem<int?>(
+                  value: 2,
+                  child: Text('RIR 2 (2 reps left / RPE 8)'),
+                ),
+                const PopupMenuItem<int?>(
+                  value: 3,
+                  child: Text('RIR 3 (3 reps left / RPE 7)'),
+                ),
+                const PopupMenuItem<int?>(
+                  value: 4,
+                  child: Text('RIR 4 (4 reps left / RPE 6)'),
+                ),
+              ],
+              child: Container(
+                width: 52,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: widget.setModel.rir != null
+                      ? theme.colorScheme.secondaryContainer
+                      : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: widget.setModel.rir != null
+                        ? theme.colorScheme.secondary
+                        : theme.dividerColor,
+                    width: 0.9,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  widget.setModel.rir != null
+                      ? 'RIR ${widget.setModel.rir}'
+                      : 'RIR',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: widget.setModel.rir != null
+                        ? theme.colorScheme.onSecondaryContainer
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Complete set Check button (40x40 hit target with haptic feedback)
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: Center(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    widget.onCompleteSet(!isCompleted);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: isCompleted
+                          ? Colors.green
+                          : theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isCompleted ? Colors.green : theme.dividerColor,
+                        width: 1.5,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(st.name[0].toUpperCase() + st.name.substring(1)),
-                  ],
-                ),
-              );
-            }).toList(),
-            child: Container(
-              width: 30,
-              height: 28,
-              decoration: BoxDecoration(
-                color: badgeColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                _getSetTypeAbbr(widget.setModel.setType),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: badgeColor,
+                    child: isCompleted
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          )
+                        : Icon(
+                            Icons.check_rounded,
+                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                            size: 20,
+                          ),
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-
-          // Weight input
-          Expanded(
-            child: SizedBox(
-              height: 38,
-              child: TextField(
-                controller: _weightCtrl,
-                focusNode: _weightFocus,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-                decoration: InputDecoration(
-                  hintText: widget.weightUnit,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: theme.dividerColor),
-                  ),
-                ),
-                onChanged: (val) {
-                  final doubleVal = double.tryParse(val);
-                  if (doubleVal != null) {
-                    final kgVal = GymDateUtils.toCanonicalKg(
-                      doubleVal,
-                      widget.weightUnit,
-                    );
-                    widget.onUpdateSet(
-                      widget.setModel.copyWith(weightKg: kgVal),
-                    );
-                  }
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Reps input
-          Expanded(
-            child: SizedBox(
-              height: 38,
-              child: TextField(
-                controller: _repsCtrl,
-                focusNode: _repsFocus,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Reps',
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: theme.dividerColor),
-                  ),
-                ),
-                onChanged: (val) {
-                  final intVal = int.tryParse(val);
-                  if (intVal != null) {
-                    widget.onUpdateSet(widget.setModel.copyWith(reps: intVal));
-                  }
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // RIR / RPE Popover button
-          PopupMenuButton<int?>(
-            tooltip: 'Log RIR (Reps in Reserve)',
-            initialValue: widget.setModel.rir,
-            onSelected: (val) {
-              HapticFeedback.selectionClick();
-              widget.onUpdateSet(widget.setModel.copyWith(rir: val));
-            },
-            itemBuilder: (ctx) => [
-              const PopupMenuItem<int?>(
-                value: null,
-                child: Text('No RIR rating'),
-              ),
-              const PopupMenuItem<int?>(
-                value: 0,
-                child: Text('RIR 0 (Failure / RPE 10)'),
-              ),
-              const PopupMenuItem<int?>(
-                value: 1,
-                child: Text('RIR 1 (1 rep left / RPE 9)'),
-              ),
-              const PopupMenuItem<int?>(
-                value: 2,
-                child: Text('RIR 2 (2 reps left / RPE 8)'),
-              ),
-              const PopupMenuItem<int?>(
-                value: 3,
-                child: Text('RIR 3 (3 reps left / RPE 7)'),
-              ),
-              const PopupMenuItem<int?>(
-                value: 4,
-                child: Text('RIR 4 (4 reps left / RPE 6)'),
-              ),
-            ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              decoration: BoxDecoration(
-                color: widget.setModel.rir != null
-                    ? theme.colorScheme.secondaryContainer
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: widget.setModel.rir != null
-                      ? theme.colorScheme.secondary
-                      : theme.dividerColor,
-                  width: 0.8,
-                ),
-              ),
-              child: Text(
-                widget.setModel.rir != null
-                    ? 'RIR ${widget.setModel.rir}'
-                    : 'RIR',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: widget.setModel.rir != null
-                      ? theme.colorScheme.onSecondaryContainer
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // Delete set
-          IconButton(
-            icon: Icon(
-              Icons.remove_circle_outline_rounded,
-              size: 18,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-            ),
-            visualDensity: VisualDensity.compact,
-            onPressed: () {
-              HapticFeedback.selectionClick();
-              widget.onDeleteSet();
-            },
-          ),
-
-          // Complete set Checkbox / Check button
-          GestureDetector(
-            onTap: () {
-              widget.onCompleteSet(!isCompleted);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isCompleted
-                    ? Colors.green
-                    : theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isCompleted ? Colors.green : theme.dividerColor,
-                  width: 1.5,
-                ),
-              ),
-              child: isCompleted
-                  ? const Icon(
-                      Icons.check_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    )
-                  : null,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

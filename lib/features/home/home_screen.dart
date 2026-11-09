@@ -38,6 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final gc = context.gc;
+    final userName = ref.watch(userNameProvider);
     final attState = ref.watch(attendanceProvider);
     final activeWorkout = ref.watch(activeWorkoutProvider);
     final totalXpAsync = ref.watch(totalXpProvider);
@@ -76,7 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 1. Top Bar
-              _buildTopBar(context, gc, streak, attState.streak),
+              _buildTopBar(context, gc, streak, attState.streak, userName),
               const SizedBox(height: 18),
 
               // 2. Active Workout Alert Banner (if active)
@@ -102,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 22),
 
               // 7. This Week Metrics
-              const Kicker('THIS WEEK PERFORMANCE'),
+              const Kicker('Weekly Performance'),
               const SizedBox(height: 10),
               _buildMetricsRow(gc, streak, totalXpAsync.value ?? 0),
               const SizedBox(height: 24),
@@ -111,7 +112,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Kicker('QUICK WORKOUT ROUTINES'),
+                  const Expanded(child: Kicker('Quick Workout Routines')),
                   GestureDetector(
                     onTap: () {
                       Navigator.of(context).push(
@@ -121,12 +122,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       );
                     },
                     child: Text(
-                      'VIEW ALL',
-                      style: AppTheme.d(
+                      'View all',
+                      style: AppTheme.s(
                         12,
                         weight: FontWeight.w600,
                         color: gc.accent,
-                        letterSpacing: 1.5,
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ),
@@ -140,10 +141,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Kicker(
-                    _mode == WorkoutMode.home
-                        ? 'HOME EXERCISES'
-                        : 'FEATURED EXERCISES',
+                  Expanded(
+                    child: Kicker(
+                      _mode == WorkoutMode.home
+                          ? 'Home Exercises'
+                          : 'Featured Exercises',
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {
@@ -158,12 +161,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       );
                     },
                     child: Text(
-                      'BROWSE ALL',
-                      style: AppTheme.d(
+                      'Browse all',
+                      style: AppTheme.s(
                         12,
                         weight: FontWeight.w600,
                         color: gc.accent,
-                        letterSpacing: 1.5,
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ),
@@ -186,9 +189,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     GymColors gc,
     int streak,
     StreakModel streakModel,
+    String userName,
   ) {
     final now = DateTime.now();
     final dateLabel = GymDateUtils.formatDate(now);
+    final kickerText = userName.trim().isNotEmpty
+        ? 'Welcome back, ${userName.trim()}'
+        : 'Today';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -198,18 +205,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Kicker('TODAY'),
-              const SizedBox(height: 2),
+              Kicker(kickerText),
+              const SizedBox(height: 3),
               Text(
                 dateLabel,
-                style: AppTheme.d(20, weight: FontWeight.w700, color: gc.text),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                style: AppTheme.d(21, weight: FontWeight.w700, color: gc.text),
+                maxLines: 2,
+                overflow: TextOverflow.visible,
               ),
             ],
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -228,8 +235,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: 11,
+                  vertical: 7,
                 ),
                 decoration: BoxDecoration(
                   color: gc.bgRaised,
@@ -257,49 +264,174 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 6),
-            // Quick Log button
+            const SizedBox(width: 8),
+            // Consolidated Quick Hub & Tools Button
             _roundIconBtn(
               gc,
-              icon: Icons.bolt_rounded,
-              tooltip: 'Quick Log Exercise',
-              onTap: () => QuickLogSheet.show(context),
-            ),
-            const SizedBox(width: 6),
-            // How to use walkthrough button
-            _roundIconBtn(
-              gc,
-              icon: Icons.help_outline_rounded,
-              tooltip: 'How to Use GymBuddy',
-              onTap: () => HowToUseGuideModal.show(context),
-            ),
-            const SizedBox(width: 6),
-            // Gym Tools button
-            _roundIconBtn(
-              gc,
-              icon: Icons.calculate_outlined,
-              tooltip: 'Gym Tools & Calculators',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const GymToolsHubScreen()),
-                );
-              },
-            ),
-            const SizedBox(width: 6),
-            // Achievements button
-            _roundIconBtn(
-              gc,
-              icon: Icons.emoji_events_outlined,
-              tooltip: 'Achievements',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AchievementsScreen()),
-                );
-              },
+              icon: Icons.grid_view_rounded,
+              tooltip: 'Gym Tools & Quick Actions',
+              onTap: () => _showQuickHubModal(context, gc),
             ),
           ],
         ),
       ],
+    );
+  }
+
+  void _showQuickHubModal(BuildContext context, GymColors gc) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: gc.bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 18),
+                    decoration: BoxDecoration(
+                      color: gc.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  'GymBuddy Hub',
+                  style: AppTheme.d(20, weight: FontWeight.w700, color: gc.text),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Calculators, achievements, and quick actions',
+                  style: AppTheme.s(13, color: gc.textSecondary),
+                ),
+                const SizedBox(height: 18),
+                _buildHubItem(
+                  gc,
+                  icon: Icons.calculate_outlined,
+                  iconColor: gc.accent,
+                  title: 'Gym Tools & Calculators',
+                  subtitle: '1RM, Plate Loader, Macros, and Body Fat',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const GymToolsHubScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildHubItem(
+                  gc,
+                  icon: Icons.emoji_events_outlined,
+                  iconColor: AppAccentColors.amber.darkColor,
+                  title: 'Achievements & Badges',
+                  subtitle: 'Milestones, personal records, and level progress',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AchievementsScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildHubItem(
+                  gc,
+                  icon: Icons.bolt_rounded,
+                  iconColor: AppAccentColors.cyan.darkColor,
+                  title: 'Quick Log Exercise',
+                  subtitle: 'Log a quick set without a full workout session',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    QuickLogSheet.show(context);
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildHubItem(
+                  gc,
+                  icon: Icons.help_outline_rounded,
+                  iconColor: AppAccentColors.violet.darkColor,
+                  title: 'How to Use Guide',
+                  subtitle: 'Interactive tour and workout guidance',
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    HowToUseGuideModal.show(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHubItem(
+    GymColors gc, {
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: gc.bgRaised,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: gc.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTheme.s(14, weight: FontWeight.w600, color: gc.text),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTheme.s(12, color: gc.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: gc.textTertiary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -309,20 +441,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required String tooltip,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: gc.bgRaised,
-          shape: BoxShape.circle,
-          border: Border.all(color: gc.border),
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: gc.bgRaised,
+            shape: BoxShape.circle,
+            border: Border.all(color: gc.border),
+          ),
+          child: Center(child: Icon(icon, size: 18, color: gc.textSecondary)),
         ),
-        child: Center(child: Icon(icon, size: 18, color: gc.textSecondary)),
       ),
     );
   }
@@ -331,8 +466,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // WORKOUT MODE SELECTOR
   // ==========================================
   Widget _buildModeSelector(GymColors gc) {
-    return Align(
-      alignment: Alignment.centerLeft,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       child: SegToggle([
         SegOption(
           'All Workouts',
@@ -369,15 +505,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     int exerciseCount;
 
     if (_mode == WorkoutMode.home) {
-      title = 'HOME CALISTHENICS';
+      title = 'Home Calisthenics';
       subtitle = 'Bodyweight, push-up progressions & core';
       exerciseCount = kHomeExercises.length;
     } else if (_mode == WorkoutMode.gym) {
-      title = 'CHEST & TRICEPS';
+      title = 'Chest & Triceps';
       subtitle = 'Bench press, incline dumbbells & dips';
       exerciseCount = 8;
     } else {
-      title = 'UPPER BODY PUSH';
+      title = 'Upper Body Push';
       subtitle = 'Home & gym floor hybrid workout';
       exerciseCount = 12;
     }
@@ -392,19 +528,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         child: Stack(
           children: [
-            // Ambient soft glow
-            Positioned(
-              left: -40,
-              bottom: -40,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  color: gc.accentSoft,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
             // Runner silhouette illustration
             Positioned(
               right: -10,
@@ -427,8 +550,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Kicker(
                     isScheduledToday
-                        ? "TODAY'S SCHEDULED FOCUS"
-                        : "TODAY'S FOCUS",
+                        ? "Today's Scheduled Focus"
+                        : "Today's Focus",
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -510,13 +633,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'WEEKLY CONSISTENCY',
-                style: AppTheme.d(
-                  11,
-                  weight: FontWeight.w600,
-                  color: gc.textSecondary,
-                  letterSpacing: 1.5,
+              Expanded(
+                child: Text(
+                  'Weekly Consistency',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.s(
+                    12,
+                    weight: FontWeight.w600,
+                    color: gc.textSecondary,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
               GestureDetector(
@@ -637,21 +764,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Kicker('ANATOMICAL MUSCLE MAP'),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Target: ${_selectedMuscle.toUpperCase()}',
-                    style: AppTheme.d(
-                      18,
-                      weight: FontWeight.w700,
-                      color: gc.text,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Kicker('Muscle Target Map'),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Target: ${_selectedMuscle.isNotEmpty ? _selectedMuscle[0].toUpperCase() + _selectedMuscle.substring(1) : ""}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.d(
+                        18,
+                        weight: FontWeight.w700,
+                        color: gc.text,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               SecondaryButton(
                 height: 38,
                 label: 'Exercises',
@@ -708,12 +840,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'CURRENT STREAK',
-                  style: AppTheme.d(
-                    11,
+                  'Current Streak',
+                  style: AppTheme.s(
+                    12,
                     weight: FontWeight.w600,
                     color: gc.textSecondary,
-                    letterSpacing: 1,
+                    letterSpacing: 0.2,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -738,12 +870,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'TOTAL XP',
-                  style: AppTheme.d(
-                    11,
+                  'Total XP',
+                  style: AppTheme.s(
+                    12,
                     weight: FontWeight.w600,
                     color: gc.textSecondary,
-                    letterSpacing: 1,
+                    letterSpacing: 0.2,
                   ),
                 ),
                 const SizedBox(height: 4),

@@ -122,12 +122,12 @@ class GymToolsHubScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'GYM FLOOR ESSENTIALS',
+                          'Gym Floor Essentials',
                           style: TextStyle(
                             color: Colors.white70,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.5,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -140,7 +140,7 @@ class GymToolsHubScreen extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '100% offline • Instant computations',
+                          '100% offline · Instant computations',
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12),
                         ),
                       ],

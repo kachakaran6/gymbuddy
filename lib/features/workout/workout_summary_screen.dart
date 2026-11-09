@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../domain/models/models.dart';
 import '../../core/utils/date_utils.dart';
-import '../../core/services/play_services.dart';
+import '../../core/services/review_service.dart';
 
 class WorkoutSummaryScreen extends StatelessWidget {
   final WorkoutSessionModel workout;
@@ -42,7 +42,7 @@ class WorkoutSummaryScreen extends StatelessWidget {
             ),
             onPressed: () {
               HapticFeedback.mediumImpact();
-              PlayServices.requestReview();
+              ReviewService.requestInAppReviewIfEligible();
               Navigator.of(context).pop();
             },
             child: const Text(
@@ -85,13 +85,9 @@ class WorkoutSummaryScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color:
-                          (workout.totalCompletedSets > 0
-                                  ? theme.colorScheme.primary
-                                  : Colors.black)
-                              .withValues(alpha: 0.2),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -115,13 +111,12 @@ class WorkoutSummaryScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       workout.totalCompletedSets > 0
-                          ? 'WORKOUT COMPLETE!'
-                          : 'SESSION SAVED (EMPTY)',
+                          ? 'Workout Complete!'
+                          : 'Session Saved',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -436,12 +431,11 @@ class WorkoutSummaryScreen extends StatelessWidget {
               Icon(icon, size: 14, color: theme.colorScheme.onSurfaceVariant),
               const SizedBox(width: 4),
               Text(
-                label.toUpperCase(),
+                label,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 10,
-                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
                 ),
               ),
             ],

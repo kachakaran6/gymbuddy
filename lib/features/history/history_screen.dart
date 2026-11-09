@@ -168,8 +168,8 @@ class _WorkoutHistoryCardState extends State<_WorkoutHistoryCard>
                         const SizedBox(height: 2),
                         Text(
                           workout.isQuickLog
-                              ? '$timeStr  •  ⚡ Quick Log  •  ${workout.exercises.isNotEmpty ? (workout.exercises.first.exercise?.name ?? "Exercise") : "Quick Log"}'
-                              : '$timeStr  •  $duration  •  ${workout.exercises.length} exercises',
+                              ? '$timeStr · Quick Log · ${workout.exercises.isNotEmpty ? (workout.exercises.first.exercise?.name ?? "Exercise") : "Quick Log"}'
+                              : '$timeStr · $duration · ${workout.exercises.length} exercises',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_colors.dart';
 import '../../domain/models/models.dart';
@@ -20,13 +21,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final TextEditingController _nameController = TextEditingController();
   int _currentStep = 0;
   static const int _totalSteps = 6;
+  bool _isFinishing = false;
 
   // Preferences state
   final Set<int> _selectedDays = {1, 3, 5}; // Mon, Wed, Fri
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
   String _selectedEnvironment = 'hybrid'; // home, gym, hybrid
   String _selectedAccent = 'copper';
-  String _selectedTheme = 'dark';
+  final String _selectedTheme = 'dark';
 
   final List<String> _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -58,26 +60,50 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _finishOnboarding() async {
+    if (_isFinishing) return;
+    setState(() => _isFinishing = true);
     HapticFeedback.mediumImpact();
 
-    // 1. Save Schedules
-    final List<GymScheduleModel> schedules = [];
-    for (int day = 1; day <= 7; day++) {
-      schedules.add(GymScheduleModel(
-        weekday: day,
-        enabled: _selectedDays.contains(day),
-        gymHour: _selectedTime.hour,
-        gymMinute: _selectedTime.minute,
-      ));
+    try {
+      // 1. Save local user profile name
+      final name = _nameController.text.trim();
+      if (name.isNotEmpty) {
+        await ref.read(userNameProvider.notifier).setUserName(name);
+      }
+
+      // 2. Save Schedules
+      final List<GymScheduleModel> schedules = [];
+      for (int day = 1; day <= 7; day++) {
+        schedules.add(GymScheduleModel(
+          weekday: day,
+          enabled: _selectedDays.contains(day),
+          gymHour: _selectedTime.hour,
+          gymMinute: _selectedTime.minute,
+        ));
+      }
+      await ref.read(gymScheduleProvider.notifier).updateSchedules(schedules);
+
+      // 3. Save Theme & Accent
+      await ref.read(userPreferencesProvider.notifier).setThemeMode(_selectedTheme);
+      await ref.read(userPreferencesProvider.notifier).setAccentKey(_selectedAccent);
+
+      // 4. Mark Onboarding Complete
+      await ref.read(userPreferencesProvider.notifier).setOnboardingComplete(true);
+    } catch (e, stack) {
+      debugPrint('Error finishing onboarding: $e\n$stack');
+    } finally {
+      if (mounted) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const AppNavigationShell(onboardingComplete: true),
+            ),
+          );
+        }
+      }
     }
-    await ref.read(gymScheduleProvider.notifier).updateSchedules(schedules);
-
-    // 2. Save Theme & Accent
-    await ref.read(userPreferencesProvider.notifier).setThemeMode(_selectedTheme);
-    await ref.read(userPreferencesProvider.notifier).setAccentKey(_selectedAccent);
-
-    // 3. Mark Onboarding Complete
-    await ref.read(userPreferencesProvider.notifier).setOnboardingComplete(true);
   }
 
   @override
@@ -179,6 +205,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               icon: _currentStep == _totalSteps - 1
                   ? Icons.fitness_center_rounded
                   : Icons.arrow_forward_rounded,
+              isLoading: _isFinishing && _currentStep == _totalSteps - 1,
               onTap: () {
                 if (_currentStep == _totalSteps - 1) {
                   _finishOnboarding();
@@ -212,7 +239,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 'assets/img/runner.png',
                 fit: BoxFit.contain,
                 opacity: const AlwaysStoppedAnimation(0.9),
-                errorBuilder: (_, __, ___) => Icon(
+                errorBuilder: (_, _, _) => Icon(
                   Icons.fitness_center_rounded,
                   size: 100,
                   color: gc.accent,
@@ -221,11 +248,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const Kicker('THE OFFLINE FITNESS COMPANION'),
+          const Kicker('The Offline Fitness Companion'),
           const SizedBox(height: 8),
           Text(
-            'GYMBUDDY',
-            style: AppTheme.d(44, weight: FontWeight.w800, color: gc.text, letterSpacing: 1.5),
+            'GymBuddy',
+            style: AppTheme.d(42, weight: FontWeight.w800, color: gc.text, letterSpacing: 0.5),
           ),
           const SizedBox(height: 12),
           Text(
@@ -263,7 +290,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: Icon(Icons.accessibility_new_rounded, size: 28, color: gc.accent),
           ),
           const SizedBox(height: 20),
-          const Kicker('TUTORIAL · STEP 1 OF 3'),
+          const Kicker('Step 1 of 3 · Muscle Map'),
           const SizedBox(height: 8),
           Text(
             'Interactive Muscle Map',
@@ -334,7 +361,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: Icon(Icons.home_rounded, size: 28, color: gc.accent),
           ),
           const SizedBox(height: 20),
-          const Kicker('TUTORIAL · STEP 2 OF 3'),
+          const Kicker('Step 2 of 3 · Environments'),
           const SizedBox(height: 8),
           Text(
             'Train at Home or Gym',
@@ -451,7 +478,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: Icon(Icons.timer_outlined, size: 28, color: gc.accent),
           ),
           const SizedBox(height: 20),
-          const Kicker('TUTORIAL · STEP 3 OF 3'),
+          const Kicker('Step 3 of 3 · Workout Logger'),
           const SizedBox(height: 8),
           Text(
             'Live Logging & Rest Alarm',
@@ -471,7 +498,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('SET 1', style: AppTheme.d(14, weight: FontWeight.w700, color: gc.brass)),
+                    Text('Set 1', style: AppTheme.d(14, weight: FontWeight.w700, color: gc.brass)),
                     Text('80 kg × 8 reps', style: AppTheme.d(16, weight: FontWeight.w700, color: gc.text)),
                     Container(
                       width: 32,
@@ -533,7 +560,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: Icon(Icons.calendar_month_outlined, size: 28, color: gc.accent),
           ),
           const SizedBox(height: 20),
-          const Kicker('HABIT FORMATION'),
+          const Kicker('Workout Routine'),
           const SizedBox(height: 8),
           Text(
             'Your Workout Days',
@@ -602,7 +629,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Kicker('PREFERRED TIME'),
+                    const Kicker('Preferred Time'),
                     const SizedBox(height: 4),
                     Text(
                       _selectedTime.format(context),
@@ -650,7 +677,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: Icon(Icons.person_outline_rounded, size: 28, color: gc.accent),
           ),
           const SizedBox(height: 20),
-          const Kicker('READY TO LIFT'),
+          const Kicker('Profile'),
           const SizedBox(height: 8),
           Text(
             'What is your name?',
@@ -687,7 +714,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ),
           const SizedBox(height: 28),
-          const Kicker('CHOOSE ACCENT HIGHLIGHT'),
+          const Kicker('Theme Accent'),
           const SizedBox(height: 12),
           Wrap(
             spacing: 10,

@@ -33,14 +33,32 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
     text: '60',
   );
   final TextEditingController _noteController = TextEditingController();
+  final TextEditingController _customNameController = TextEditingController();
 
   final FocusNode _repsFocus = FocusNode();
   final FocusNode _durationFocus = FocusNode();
+  final FocusNode _customNameFocus = FocusNode();
 
   ExerciseModel? _selectedExercise;
   int _setsCount = 1;
   bool _isSaving = false;
   String _searchQuery = '';
+  bool _isFreeFormMode = false;
+  String _customCategory = 'Full Body';
+  bool _customIsTimed = false;
+  final bool _customIsWeighted = true;
+
+  static const _customCategories = [
+    'Chest',
+    'Back',
+    'Legs',
+    'Arms',
+    'Shoulders',
+    'Abs',
+    'Cardio',
+    'Full Body',
+    'Custom',
+  ];
 
   @override
   void initState() {
@@ -59,8 +77,10 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
     _weightController.dispose();
     _durationController.dispose();
     _noteController.dispose();
+    _customNameController.dispose();
     _repsFocus.dispose();
     _durationFocus.dispose();
+    _customNameFocus.dispose();
     super.dispose();
   }
 
@@ -84,6 +104,7 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
   void _selectExercise(ExerciseModel ex) {
     setState(() {
       _selectedExercise = ex;
+      _isFreeFormMode = false;
       if (_isTimedExercise(ex)) {
         if (_durationController.text.isEmpty) _durationController.text = '60';
         _durationFocus.requestFocus();
@@ -95,10 +116,30 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
   }
 
   Future<void> _handleSave() async {
-    if (_selectedExercise == null || _isSaving) return;
+    if (_isSaving) return;
 
-    final isTimed = _isTimedExercise(_selectedExercise!);
-    final isWeighted = _isWeightedExercise(_selectedExercise!);
+    String exerciseName;
+    String exerciseId;
+    final bool isTimed;
+    final bool isWeighted;
+
+    if (_isFreeFormMode) {
+      final name = _customNameController.text.trim();
+      if (name.isEmpty) {
+        _showError('Please enter a name for your movement or exercise.');
+        _customNameFocus.requestFocus();
+        return;
+      }
+      exerciseName = name;
+      isTimed = _customIsTimed;
+      isWeighted = _customIsWeighted && !isTimed;
+    } else {
+      if (_selectedExercise == null) return;
+      exerciseName = _selectedExercise!.name;
+      exerciseId = _selectedExercise!.id;
+      isTimed = _isTimedExercise(_selectedExercise!);
+      isWeighted = _isWeightedExercise(_selectedExercise!);
+    }
 
     int? reps;
     int? durationSec;
@@ -107,7 +148,7 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
     if (isTimed) {
       durationSec = int.tryParse(_durationController.text.trim());
       if (durationSec == null || durationSec <= 0) {
-        _showError('Please enter a valid duration.');
+        _showError('Please enter a valid duration in seconds.');
         return;
       }
     } else {
@@ -131,6 +172,19 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
       final repo = ref.read(repositoryProvider);
       final prefs = ref.read(userPreferencesProvider);
 
+      if (_isFreeFormMode) {
+        final allExs = await repo.getExerciseDefinitions();
+        final match = allExs
+            .where((e) => e.name.trim().toLowerCase() == exerciseName.toLowerCase())
+            .firstOrNull;
+        final targetEx = match ??
+            await repo.createCustomExercise(exerciseName, _customCategory);
+        exerciseId = targetEx.id;
+        ref.invalidate(exerciseListProvider);
+      } else {
+        exerciseId = _selectedExercise!.id;
+      }
+
       // If user input weight in lbs, convert to kg for database persistence
       double? weightKg = weight;
       if (weightKg != null && prefs.weightUnit.toLowerCase() == 'lb') {
@@ -138,7 +192,7 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
       }
 
       final savedWorkout = await repo.logQuickExercise(
-        exerciseId: _selectedExercise!.id,
+        exerciseId: exerciseId,
         reps: reps,
         weightKg: weightKg,
         durationSeconds: durationSec,
@@ -157,10 +211,9 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
       Navigator.of(context).pop();
 
       // Show confirmation with Undo
-      final exName = _selectedExercise!.name;
       final summaryText = isTimed
-          ? 'Logged ${_setsCount > 1 ? "$_setsCount sets of " : ""}${durationSec}s $exName'
-          : 'Logged ${_setsCount > 1 ? "$_setsCount sets of " : ""}$reps $exName';
+          ? 'Logged ${_setsCount > 1 ? "$_setsCount sets of " : ""}${durationSec}s $exerciseName'
+          : 'Logged ${_setsCount > 1 ? "$_setsCount sets of " : ""}$reps $exerciseName';
 
       final messenger = ScaffoldMessenger.of(context);
       messenger.clearSnackBars();
@@ -319,80 +372,394 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Search & Quick Select Strip
-                  TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search exercise (e.g. Push-up, Squat)…',
-                      hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.6,
-                        ),
-                      ),
-                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                      filled: true,
-                      fillColor: cardBg,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      isDense: true,
+                  // Mode Toggle Bar (Standard vs Free-Form Journal)
+                  Container(
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: borderColor),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Quick Exercise Chips
-                  SizedBox(
-                    height: 38,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: filteredExercises.take(10).length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(width: 8),
-                      itemBuilder: (ctx, idx) {
-                        final ex = filteredExercises[idx];
-                        final isSelected = _selectedExercise?.id == ex.id;
-                        return ChoiceChip(
-                          label: Text(ex.name),
-                          selected: isSelected,
-                          onSelected: (_) => _selectExercise(ex),
-                          selectedColor: theme.colorScheme.primary,
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? theme.colorScheme.onPrimary
-                                : theme.colorScheme.onSurface,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            fontSize: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : borderColor,
+                    padding: const EdgeInsets.all(3),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _isFreeFormMode = false),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: !_isFreeFormMode
+                                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(9),
+                                border: !_isFreeFormMode
+                                    ? Border.all(
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                                        width: 1,
+                                      )
+                                    : null,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.fitness_center_rounded,
+                                    size: 15,
+                                    color: !_isFreeFormMode
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Standard Catalog',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: !_isFreeFormMode ? FontWeight.w700 : FontWeight.w500,
+                                      color: !_isFreeFormMode
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                          backgroundColor: cardBg,
-                          visualDensity: VisualDensity.compact,
-                        );
-                      },
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isFreeFormMode = true;
+                                if (_customNameController.text.trim().isEmpty && _searchController.text.trim().isNotEmpty) {
+                                  _customNameController.text = _searchController.text.trim();
+                                }
+                              });
+                              _customNameFocus.requestFocus();
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _isFreeFormMode
+                                    ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(9),
+                                border: _isFreeFormMode
+                                    ? Border.all(
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                                        width: 1,
+                                      )
+                                    : null,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.edit_note_rounded,
+                                    size: 16,
+                                    color: _isFreeFormMode
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Free Movement & Notes',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: _isFreeFormMode ? FontWeight.w700 : FontWeight.w500,
+                                      color: _isFreeFormMode
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+
+                  const SizedBox(height: 14),
+
+                  if (!_isFreeFormMode) ...[
+                    // Search & Quick Select Strip
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search exercise (e.g. Push-up, Squat)…',
+                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: cardBg,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: borderColor),
+                        ),
+                        isDense: true,
+                      ),
+                    ),
+
+                    if (_searchController.text.trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isFreeFormMode = true;
+                            _customNameController.text = _searchController.text.trim();
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.edit_note_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Log "${_searchController.text.trim()}" in your words',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: theme.colorScheme.primary,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Not in library? Tap to log as free-form exercise with notes',
+                                      style: TextStyle(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 10),
+
+                    // Quick Exercise Chips
+                    SizedBox(
+                      height: 38,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: filteredExercises.take(10).length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(width: 8),
+                        itemBuilder: (ctx, idx) {
+                          final ex = filteredExercises[idx];
+                          final isSelected = _selectedExercise?.id == ex.id;
+                          return ChoiceChip(
+                            label: Text(ex.name),
+                            selected: isSelected,
+                            onSelected: (_) => _selectExercise(ex),
+                            selectedColor: theme.colorScheme.primary,
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? theme.colorScheme.onPrimary
+                                  : theme.colorScheme.onSurface,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : borderColor,
+                              ),
+                            ),
+                            backgroundColor: cardBg,
+                            visualDensity: VisualDensity.compact,
+                          );
+                        },
+                      ),
+                    ),
+                  ] else ...[
+                    // Free-form Exercise Builder Card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.edit_note_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'FREE-FORM MOVEMENT',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: theme.colorScheme.primary,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'ANY LANGUAGE',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _customNameController,
+                            focusNode: _customNameFocus,
+                            decoration: InputDecoration(
+                              labelText: 'Exercise / Movement Name',
+                              hintText: 'e.g. Desi Dand, Akhada Baithak, Heavy Bag Drill…',
+                              filled: true,
+                              fillColor: sheetBg,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                              isDense: true,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'TARGET CATEGORY',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.onSurfaceVariant,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 34,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _customCategories.length,
+                              separatorBuilder: (context, index) => const SizedBox(width: 6),
+                              itemBuilder: (context, i) {
+                                final cat = _customCategories[i];
+                                final isSel = _customCategory == cat;
+                                return ChoiceChip(
+                                  label: Text(cat),
+                                  selected: isSel,
+                                  onSelected: (_) => setState(() => _customCategory = cat),
+                                  selectedColor: theme.colorScheme.primary,
+                                  labelStyle: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSel ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(
+                                      color: isSel ? theme.colorScheme.primary : borderColor,
+                                    ),
+                                  ),
+                                  backgroundColor: sheetBg,
+                                  visualDensity: VisualDensity.compact,
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          // Type toggles: Reps vs Timed
+                          Row(
+                            children: [
+                              FilterChip(
+                                label: const Text('Reps & Sets'),
+                                selected: !_customIsTimed,
+                                onSelected: (_) => setState(() => _customIsTimed = false),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              const SizedBox(width: 8),
+                              FilterChip(
+                                label: const Text('Timed / Cardio (Seconds)'),
+                                selected: _customIsTimed,
+                                onSelected: (_) => setState(() => _customIsTimed = true),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 16),
 
-                  // Input Card
-                  if (_selectedExercise != null) ...[
+                  // Input Card for Sets, Reps, Weight
+                  if (_isFreeFormMode || _selectedExercise != null) ...[
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -403,42 +770,43 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _selectedExercise!.name,
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
+                          if (!_isFreeFormMode && _selectedExercise != null)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _selectedExercise!.name,
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withValues(
-                                    alpha: 0.12,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  _selectedExercise!.category,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: theme.colorScheme.primary,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    _selectedExercise!.category,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: theme.colorScheme.primary,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 20),
+                              ],
+                            ),
+                          if (!_isFreeFormMode) const Divider(height: 20),
 
                           // Dynamic Form Fields
-                          if (isTimed) ...[
+                          if ((_isFreeFormMode && _customIsTimed) || (!_isFreeFormMode && isTimed)) ...[
                             // Duration in seconds
                             Text(
                               'DURATION (SECONDS)',
@@ -495,11 +863,10 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
                           ] else ...[
                             // Repetitions
                             Text(
-                              'REPETITIONS',
-                              style: theme.textTheme.labelSmall?.copyWith(
+                              'Repetitions',
+                              style: theme.textTheme.labelMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: theme.colorScheme.onSurfaceVariant,
-                                letterSpacing: 0.5,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -541,14 +908,13 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
                             ),
 
                             // Weight if weighted exercise
-                            if (isWeighted) ...[
+                            if ((_isFreeFormMode && _customIsWeighted) || (!_isFreeFormMode && isWeighted)) ...[
                               const SizedBox(height: 14),
                               Text(
-                                'WEIGHT (${prefs.weightUnit.toUpperCase()})',
-                                style: theme.textTheme.labelSmall?.copyWith(
+                                'Weight (${prefs.weightUnit})',
+                                style: theme.textTheme.labelMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: theme.colorScheme.onSurfaceVariant,
-                                  letterSpacing: 0.5,
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -582,11 +948,10 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'SETS COMPLETED',
-                                    style: theme.textTheme.labelSmall?.copyWith(
+                                    'Sets Completed',
+                                    style: theme.textTheme.labelMedium?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: theme.colorScheme.onSurfaceVariant,
-                                      letterSpacing: 0.5,
                                     ),
                                   ),
                                   Text(
@@ -630,14 +995,33 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
                             ],
                           ),
 
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
 
-                          // Optional Note
+                          // WORKOUT JOURNAL & NOTES
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.edit_note_rounded,
+                                size: 18,
+                                color: theme.colorScheme.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Workout Notes',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
                           TextField(
                             controller: _noteController,
+                            minLines: 2,
+                            maxLines: 4,
                             decoration: InputDecoration(
-                              hintText:
-                                  'Add an optional note (e.g. form check, morning warmup)…',
+                              hintText: 'Notes, sensations or form cues...',
                               hintStyle: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant
                                     .withValues(alpha: 0.6),
@@ -648,8 +1032,38 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(color: borderColor),
                               ),
-                              isDense: true,
+                              contentPadding: const EdgeInsets.all(12),
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Quick note tag chips
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              'Felt strong',
+                              'PR attempt',
+                              'Form check',
+                              'Good pump',
+                              'Fatigued',
+                            ].map((tag) {
+                              return ActionChip(
+                                label: Text(tag, style: const TextStyle(fontSize: 11)),
+                                onPressed: () {
+                                  HapticFeedback.selectionClick();
+                                  final current = _noteController.text.trim();
+                                  if (current.isEmpty) {
+                                    _noteController.text = tag;
+                                  } else {
+                                    _noteController.text = '$current, $tag';
+                                  }
+                                },
+                                visualDensity: VisualDensity.compact,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ],
                       ),
@@ -677,9 +1091,13 @@ class _QuickLogSheetState extends ConsumerState<QuickLogSheet> {
                             ),
                           )
                         : Text(
-                            _selectedExercise != null
-                                ? 'Log ${_selectedExercise!.name}'
-                                : 'Log Exercise',
+                            _isFreeFormMode
+                                ? (_customNameController.text.trim().isNotEmpty
+                                    ? 'Log "${_customNameController.text.trim()}" & Notes'
+                                    : 'Log Free-Form Movement')
+                                : (_selectedExercise != null
+                                    ? 'Log ${_selectedExercise!.name}'
+                                    : 'Log Exercise'),
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 15,

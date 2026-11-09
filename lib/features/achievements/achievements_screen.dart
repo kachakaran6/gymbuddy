@@ -42,8 +42,8 @@ class AchievementsScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                        blurRadius: 14,
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
                     ],
@@ -65,12 +65,12 @@ class AchievementsScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'BADGES & TROPHIES',
+                              'Badges & Trophies',
                               style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.5,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
                               ),
                             ),
                             const SizedBox(height: 2),

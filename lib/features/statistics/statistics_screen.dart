@@ -156,19 +156,32 @@ class StatisticsScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.base),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primaryContainer,
-                        theme.colorScheme.tertiaryContainer,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: theme.brightness == Brightness.dark
+                        ? const Color(0xFF161616)
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(AppRadius.card),
+                    border: Border.all(
+                      color: theme.brightness == Brightness.dark
+                          ? const Color(0xFF262626)
+                          : const Color(0xFFE5E5E5),
+                      width: 1,
+                    ),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.accessibility_new_rounded, color: theme.colorScheme.onPrimaryContainer, size: 32),
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.accessibility_new_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 24,
+                        ),
+                      ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
@@ -176,21 +189,25 @@ class StatisticsScreen extends ConsumerWidget {
                           children: [
                             Text(
                               'Interactive Muscle Progress',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.bold,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
+                            const SizedBox(height: 2),
                             Text(
                               'Analyze your body training map',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onPrimaryContainer,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios_rounded, color: theme.colorScheme.onPrimaryContainer, size: 16),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        size: 14,
+                      ),
                     ],
                   ),
                 ),
@@ -205,7 +222,7 @@ class StatisticsScreen extends ConsumerWidget {
                   attendances: attState.attendances,
                 ),
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
               ),
 
               const SizedBox(height: AppSpacing.xl),

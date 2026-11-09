@@ -30,8 +30,8 @@ class UserPreferencesModel {
 
   const UserPreferencesModel({
     this.id = 1,
-    this.themeMode = 'system',
-    this.accentKey = 'indigo',
+    this.themeMode = 'dark',
+    this.accentKey = 'amber',
     this.weightUnit = 'kg',
     this.onboardingComplete = false,
     this.notificationPermissionState = 'unknown',

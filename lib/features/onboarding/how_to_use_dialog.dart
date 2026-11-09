@@ -26,7 +26,7 @@ class _HowToUseGuideModalState extends State<HowToUseGuideModal> {
 
   final List<Map<String, dynamic>> _slides = [
     {
-      'kicker': 'CORE ETHOS',
+      'kicker': 'Core Ethos',
       'title': 'Offline, Pure & Free',
       'icon': Icons.shield_outlined,
       'body':
@@ -34,7 +34,7 @@ class _HowToUseGuideModalState extends State<HowToUseGuideModal> {
       'tip': 'Every rep and set stays 100% offline and private.',
     },
     {
-      'kicker': 'FEATURE GUIDE 1',
+      'kicker': 'Interactive Map',
       'title': 'Interactive Body Map',
       'icon': Icons.accessibility_new_rounded,
       'body':
@@ -42,7 +42,7 @@ class _HowToUseGuideModalState extends State<HowToUseGuideModal> {
       'tip': 'Tap front or back to inspect chest, lats, glutes, quads, and arms.',
     },
     {
-      'kicker': 'FEATURE GUIDE 2',
+      'kicker': 'Training Modes',
       'title': 'Home & Gym Workouts',
       'icon': Icons.home_rounded,
       'body':
@@ -50,7 +50,7 @@ class _HowToUseGuideModalState extends State<HowToUseGuideModal> {
       'tip': 'Use the "Home Workout" filter anytime in the Exercise Library.',
     },
     {
-      'kicker': 'FEATURE GUIDE 3',
+      'kicker': 'Live Logging',
       'title': 'Set-by-Set Logging & Rest Timer',
       'icon': Icons.timer_outlined,
       'body':
@@ -58,7 +58,7 @@ class _HowToUseGuideModalState extends State<HowToUseGuideModal> {
       'tip': 'Adjust rest durations right from the live session bar.',
     },
     {
-      'kicker': 'FEATURE GUIDE 4',
+      'kicker': 'Progress & PRs',
       'title': 'Automatic PRs & Streak Heatmap',
       'icon': Icons.emoji_events_outlined,
       'body':
@@ -113,10 +113,10 @@ class _HowToUseGuideModalState extends State<HowToUseGuideModal> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Kicker('HOW TO USE GYMBUDDY'),
+                          const Kicker('App Walkthrough'),
                           const SizedBox(height: 4),
                           Text(
-                            'App Guide & Tutorial',
+                            'How to Use GymBuddy',
                             style: AppTheme.d(22, weight: FontWeight.w700, color: gc.text),
                           ),
                         ],

@@ -113,14 +113,16 @@ class _ActiveWorkoutHomeBannerState
         ? 'WORKOUT PAUSED'
         : 'WORKOUT IN PROGRESS';
 
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const WorkoutLoggerScreen()));
-      },
-      child: AnimatedContainer(
+    return Material(
+      color: Colors.transparent,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const WorkoutLoggerScreen()));
+        },
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
@@ -388,6 +390,7 @@ class _ActiveWorkoutHomeBannerState
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

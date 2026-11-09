@@ -262,6 +262,9 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
                       return ex.category == _selectedCategory;
                     }).toList();
 
+                    final trimmedQuery = _searchQuery.trim();
+                    final hasExactMatch = exercises.any((e) => e.name.toLowerCase() == trimmedQuery.toLowerCase());
+
                     if (filtered.isEmpty) {
                       return Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -273,16 +276,26 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
                           ),
                           const SizedBox(height: AppSpacing.base),
                           Text(
-                            'No exercises found',
+                            trimmedQuery.isNotEmpty
+                                ? 'No existing exercise matching "$trimmedQuery"'
+                                : 'No exercises found',
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
+                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: AppSpacing.sm),
-                          TextButton.icon(
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create custom exercise'),
-                            onPressed: () => _showCreateCustomDialog(context),
+                          const SizedBox(height: AppSpacing.md),
+                          FilledButton.icon(
+                            icon: const Icon(Icons.add_rounded),
+                            label: Text(
+                              trimmedQuery.isNotEmpty
+                                  ? 'Add "$trimmedQuery" as Custom Movement'
+                                  : 'Create Custom Exercise',
+                            ),
+                            onPressed: () => _showCreateCustomDialog(
+                              context,
+                              trimmedQuery.isNotEmpty ? _searchController.text.trim() : null,
+                            ),
                           ),
                         ],
                       );
@@ -292,9 +305,76 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg,
                       ),
-                      itemCount: filtered.length,
+                      itemCount: filtered.length + (trimmedQuery.isNotEmpty && !hasExactMatch ? 1 : 0),
                       itemBuilder: (ctx, idx) {
-                        final ex = filtered[idx];
+                        if (trimmedQuery.isNotEmpty && !hasExactMatch && idx == 0) {
+                          return InkWell(
+                            onTap: () => _showCreateCustomDialog(context, _searchController.text.trim()),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.md,
+                                vertical: AppSpacing.sm + 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                border: Border.all(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.add_rounded,
+                                      color: theme.colorScheme.primary,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.md),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '+ Add "$trimmedQuery"',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: theme.colorScheme.primary,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Use this custom movement in your routine/workout',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: theme.colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 18,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        final exIndex = (trimmedQuery.isNotEmpty && !hasExactMatch) ? idx - 1 : idx;
+                        final ex = filtered[exIndex];
                         return _ExerciseRow(
                           exercise: ex,
                           cardBg: cardBg,
@@ -312,8 +392,8 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
     );
   }
 
-  void _showCreateCustomDialog(BuildContext context) {
-    final nameCtrl = TextEditingController();
+  void _showCreateCustomDialog(BuildContext context, [String? initialName]) {
+    final nameCtrl = TextEditingController(text: initialName ?? '');
     String category = 'Chest';
 
     showDialog(
@@ -326,13 +406,16 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
             TextField(
               controller: nameCtrl,
               autofocus: true,
-              decoration: const InputDecoration(labelText: 'Exercise Name'),
+              decoration: const InputDecoration(
+                labelText: 'Exercise Name',
+                hintText: 'e.g. Desi Dand, Bulgarian Split Squat...',
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             DropdownButtonFormField<String>(
               initialValue: category,
               decoration: const InputDecoration(labelText: 'Category'),
-              items: ['Chest', 'Back', 'Legs', 'Arms', 'Shoulders', 'Cardio', 'Abs']
+              items: ['Chest', 'Back', 'Legs', 'Arms', 'Shoulders', 'Cardio', 'Abs', 'Full Body']
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
               onChanged: (val) {
@@ -356,7 +439,7 @@ class _ExercisePickerSheetState extends ConsumerState<_ExercisePickerSheet> {
               );
               ref.invalidate(exerciseListProvider);
               if (ctx.mounted) Navigator.of(ctx).pop();
-              if (mounted) Navigator.of(context).pop(newEx);
+              if (context.mounted) Navigator.of(context).pop(newEx);
             },
             child: const Text('Save'),
           ),

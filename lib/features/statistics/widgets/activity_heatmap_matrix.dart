@@ -151,13 +151,11 @@ class _ActivityHeatmapMatrixState extends State<ActivityHeatmapMatrix> {
     final matrix = _buildMatrix();
 
     int totalPastYearWorkouts = 0;
-    double totalPastYearVolume = 0.0;
     int activeDays = 0;
 
     for (final col in matrix) {
       for (final d in col) {
         totalPastYearWorkouts += d.workoutCount;
-        totalPastYearVolume += d.totalVolumeKg;
         if (d.workoutCount > 0 || d.attendanceStatus == AttendanceStatus.checkedIn) {
           activeDays++;
         }

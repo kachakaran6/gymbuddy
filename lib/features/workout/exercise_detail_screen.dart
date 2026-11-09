@@ -185,10 +185,10 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          ex.primary.toUpperCase(),
+                          ex.primary,
                           style: TextStyle(
                             color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
                         ),
