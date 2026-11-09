@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/providers/app_providers.dart';
 
 class NotificationDiagnosticsScreen extends ConsumerStatefulWidget {
@@ -74,7 +75,7 @@ Permission State: ${prefs.notificationPermissionState}
 Gym Days: $activeDays
 Gym Time: $time
 Pending Reminders: ${_pendingNotifications.length}
-App Version: Phase 3
+App Version: ${AppConstants.appVersion}
 ''';
 
     Clipboard.setData(ClipboardData(text: diag));

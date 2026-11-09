@@ -4,9 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/play_services.dart';
+import '../../core/services/review_service.dart';
+import '../../core/services/app_metadata_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
@@ -15,6 +19,8 @@ import '../../domain/models/models.dart';
 import '../../widgets/gym_widgets.dart';
 import 'notification_diagnostics_screen.dart';
 import 'storage_diagnostics_screen.dart';
+import 'legal_attribution_dialog.dart';
+import 'our_apps_screen.dart';
 import '../onboarding/how_to_use_dialog.dart';
 import '../onboarding/onboarding_screen.dart';
 
@@ -51,10 +57,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     final isDark = theme.brightness == Brightness.dark;
+    final activeAccent = AppAccentColors.fromName(prefs.accentKey);
+    final currentAccentColor = AppTheme.getAccentColor(
+      activeAccent.name,
+      isDark: isDark,
+    );
     final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
     final borderColor = isDark
         ? const Color(0xFF262626)
         : const Color(0xFFE5E5E5);
+    final metadata = ref.watch(appMetadataProvider).valueOrNull;
+    final versionDisplay = metadata?.displayVersion ??
+        'Version ${AppConstants.appVersion} (Build 10)';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), centerTitle: true),
@@ -225,8 +239,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   GymSettingsRow(
                     icon: Icons.notifications_active_rounded,
-                    title: 'Test & Diagnostics',
-                    subtitle: 'Check notification health',
+                    title: 'Reminder Troubleshooting',
+                    subtitle: 'Verify notification delivery and alarm synchronization',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -326,66 +340,160 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Accent Color',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: AppAccentColors.all.map((accent) {
-                            final isSelected =
-                                prefs.accentKey.toLowerCase() ==
-                                accent.name.toLowerCase();
-                            final color = AppTheme.getAccentColor(
-                              accent.name,
-                              isDark: isDark,
-                            );
-                            final onColor = AppTheme.getOnAccentColor(color);
-                            return Semantics(
-                              label: accent.name,
-                              selected: isSelected,
-                              child: GestureDetector(
-                                onTap: () {
-                                  ref
-                                      .read(userPreferencesProvider.notifier)
-                                      .setAccentKey(accent.name.toLowerCase());
-                                },
-                                child: Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: color,
-                                    border: isSelected
-                                        ? Border.all(
-                                            color: color.withValues(alpha: 0.4),
-                                            width: 3,
-                                          )
-                                        : null,
-                                    boxShadow: isSelected
-                                        ? [
-                                            BoxShadow(
-                                              color: color.withValues(
-                                                alpha: 0.4,
-                                              ),
-                                              blurRadius: 8,
-                                              spreadRadius: 1,
-                                            ),
-                                          ]
-                                        : null,
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            const Text(
+                              'Accent Color',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: currentAccentColor.withValues(
+                                  alpha: isDark ? 0.2 : 0.1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: currentAccentColor.withValues(
+                                    alpha: isDark ? 0.45 : 0.25,
                                   ),
-                                  child: isSelected
-                                      ? Icon(
-                                          Icons.check_rounded,
-                                          size: 16,
-                                          color: onColor,
-                                        )
-                                      : null,
+                                  width: 1,
                                 ),
                               ),
-                            );
-                          }).toList(),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: currentAccentColor,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    activeAccent.gymVibe.isNotEmpty
+                                        ? '${activeAccent.name} • ${activeAccent.gymVibe}'
+                                        : activeAccent.name,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white : Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Athletic palette tuned for dark & light visibility',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            children: AppAccentColors.all.map((accent) {
+                              final isSelected =
+                                  prefs.accentKey.toLowerCase() ==
+                                  accent.name.toLowerCase();
+                              final color = AppTheme.getAccentColor(
+                                accent.name,
+                                isDark: isDark,
+                              );
+                              final onColor = AppTheme.getOnAccentColor(color);
+                              return Padding(
+                                padding: const EdgeInsets.only(right: AppSpacing.md),
+                                child: Semantics(
+                                  label: '${accent.name} ${accent.gymVibe}',
+                                  selected: isSelected,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () {
+                                      ref
+                                          .read(userPreferencesProvider.notifier)
+                                          .setAccentKey(accent.name.toLowerCase());
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 2,
+                                        vertical: 2,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          AnimatedContainer(
+                                            duration: AppDurations.fast,
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: color,
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? (isDark ? Colors.white : Colors.black)
+                                                    : (isDark
+                                                        ? const Color(0xFF333333)
+                                                        : const Color(0xFFE5E5E5)),
+                                                width: isSelected ? 2.5 : 1.0,
+                                              ),
+                                              boxShadow: isSelected
+                                                  ? [
+                                                      BoxShadow(
+                                                        color: color.withValues(
+                                                          alpha: isDark ? 0.55 : 0.35,
+                                                        ),
+                                                        blurRadius: 10,
+                                                        spreadRadius: 2,
+                                                      ),
+                                                    ]
+                                                  : null,
+                                            ),
+                                            child: isSelected
+                                                ? Icon(
+                                                    Icons.check_rounded,
+                                                    size: 18,
+                                                    color: onColor,
+                                                  )
+                                                : null,
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            accent.name,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w500,
+                                              color: isSelected
+                                                  ? (isDark ? Colors.white : Colors.black)
+                                                  : (isDark
+                                                      ? const Color(0xFF9A9A9A)
+                                                      : const Color(0xFF6B7280)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ],
                     ),
@@ -489,21 +597,123 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // ── About ────────────────────────────────────────
-            const GymSectionHeader(title: 'About'),
+            // ── About & Community ──────────────────────────
+            const GymSectionHeader(title: 'About & Community'),
             _buildCard(
               isDark: isDark,
               cardBg: cardBg,
               borderColor: borderColor,
-              child: GymSettingsRow(
-                icon: Icons.info_outline_rounded,
-                title: 'GymBuddy',
-                subtitle: 'Offline-first fitness consistency companion',
-                trailing: Text(
-                  AppConstants.appVersion,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.onSurfaceVariant,
+              child: Column(
+                children: [
+                  GymSettingsRow(
+                    icon: Icons.apps_rounded,
+                    title: 'Our Apps',
+                    subtitle: 'Explore the centralized Samyukt application ecosystem',
+                    trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const OurAppsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  Divider(height: 1, thickness: 1, color: borderColor),
+                  GymSettingsRow(
+                    icon: Icons.system_update_rounded,
+                    title: 'Check for Updates',
+                    subtitle: 'Google Play in-app updates',
+                    onTap: () async {
+                      await PlayServices.checkForUpdate();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Checking Google Play for available updates...'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  Divider(height: 1, thickness: 1, color: borderColor),
+                  GymSettingsRow(
+                    icon: Icons.star_rate_rounded,
+                    title: 'Rate GymBuddy',
+                    subtitle: 'Review on Google Play Store',
+                    onTap: () => ReviewService.openPlayStoreListing(),
+                  ),
+                  Divider(height: 1, thickness: 1, color: borderColor),
+                  GymSettingsRow(
+                    icon: Icons.share_rounded,
+                    title: 'Share GymBuddy',
+                    subtitle:
+                        'Invite workout partners & friends to train together',
+                    onTap: () => _shareApp(context),
+                  ),
+                  Divider(height: 1, thickness: 1, color: borderColor),
+                  GymSettingsRow(
+                    icon: Icons.info_outline_rounded,
+                    title: 'GymBuddy',
+                    subtitle: 'Offline-first fitness consistency companion',
+                    trailing: Text(
+                      versionDisplay,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Divider(height: 1, thickness: 1, color: borderColor),
+                  GymSettingsRow(
+                    icon: Icons.verified_user_outlined,
+                    title: 'Open Source Licenses & Attributions',
+                    subtitle: 'Creative Commons artwork & open source notices',
+                    onTap: () => LegalAttributionDialog.show(context),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            // ── Samyukt Attribution ────────────────────────
+            Center(
+              child: InkWell(
+                onTap: () async {
+                  final uri = Uri.parse(AppConstants.samyuktWebsiteUrl);
+                  try {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } catch (_) {}
+                },
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.favorite_rounded,
+                        size: 14,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        'Made with care by Samyukt',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurfaceVariant,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Icon(
+                        Icons.arrow_outward_rounded,
+                        size: 13,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -512,6 +722,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _shareApp(BuildContext context) async {
+    final metadata = ref.read(appMetadataProvider).valueOrNull;
+    final appName = metadata?.appName ?? AppConstants.appName;
+    final shareMessage = AppMetadataService.generateShareMessage(
+      appName: appName,
+      shortDescription: AppConstants.appDescription,
+      playStoreUrl: AppConstants.playStoreUrl,
+    );
+
+    final box = context.findRenderObject() as RenderBox?;
+    final origin =
+        box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+
+    try {
+      await Share.share(
+        shareMessage,
+        subject: '$appName — Workout & Consistency Companion',
+        sharePositionOrigin: origin,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open share dialog: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildCard({
@@ -604,6 +845,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (context.mounted) {
           await _restoreFromFile(context, ref, file);
         }
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('File selection cancelled.')),
+        );
       }
     } catch (e) {
       if (context.mounted) {
@@ -677,6 +922,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       if (context.mounted) {
                         await _processCsvImport(context, ref, content);
                       }
+                    } else if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('CSV file selection cancelled.')),
+                      );
                     }
                   } catch (e) {
                     if (context.mounted) {

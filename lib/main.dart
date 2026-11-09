@@ -1,12 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/providers/app_providers.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'domain/models/models.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: GymBuddyApp()));
+
+  // Android 15 Edge-To-Edge: transparent system bars with edge-to-edge layout
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
+
+  // Pre-load cached theme preferences to eliminate white/light theme flash on startup
+  String initialTheme = 'dark';
+  String initialAccent = 'amber';
+  bool initialOnboarding = false;
+  try {
+    final sp = await SharedPreferences.getInstance();
+    initialTheme = sp.getString('pref_theme_mode') ?? 'dark';
+    initialAccent = sp.getString('pref_accent_key') ?? 'amber';
+    initialOnboarding = sp.getBool('onboarding_complete') ?? false;
+  } catch (_) {}
+
+  final initialPrefs = UserPreferencesModel(
+    themeMode: initialTheme,
+    accentKey: initialAccent,
+    onboardingComplete: initialOnboarding,
+  );
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        userPreferencesProvider.overrideWith(
+          (ref) => PreferencesNotifier(
+            ref.watch(repositoryProvider),
+            initial: initialPrefs,
+          ),
+        ),
+      ],
+      child: const GymBuddyApp(),
+    ),
+  );
 }
 
 class GymBuddyApp extends ConsumerWidget {
@@ -35,6 +80,7 @@ class GymBuddyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme(prefs.accentKey),
       themeMode: themeMode,
       home: AppNavigationShell(
+        key: ValueKey(prefs.onboardingComplete),
         onboardingComplete: prefs.onboardingComplete,
       ),
     );

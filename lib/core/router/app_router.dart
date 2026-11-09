@@ -69,12 +69,42 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
         extendBody: true,
         body: IndexedStack(
           index: _currentTab.index,
-          children: const [
-            HomeScreen(),
-            HistoryScreen(),
-            StatisticsScreen(),
-            CalendarScreen(),
-            SettingsScreen(),
+          children: [
+            TickerMode(
+              enabled: _currentTab == MainTab.home,
+              child: const KeyedSubtree(
+                key: ValueKey('tab_home'),
+                child: HomeScreen(),
+              ),
+            ),
+            TickerMode(
+              enabled: _currentTab == MainTab.history,
+              child: const KeyedSubtree(
+                key: ValueKey('tab_history'),
+                child: HistoryScreen(),
+              ),
+            ),
+            TickerMode(
+              enabled: _currentTab == MainTab.statistics,
+              child: const KeyedSubtree(
+                key: ValueKey('tab_statistics'),
+                child: StatisticsScreen(),
+              ),
+            ),
+            TickerMode(
+              enabled: _currentTab == MainTab.calendar,
+              child: const KeyedSubtree(
+                key: ValueKey('tab_calendar'),
+                child: CalendarScreen(),
+              ),
+            ),
+            TickerMode(
+              enabled: _currentTab == MainTab.settings,
+              child: const KeyedSubtree(
+                key: ValueKey('tab_settings'),
+                child: SettingsScreen(),
+              ),
+            ),
           ],
         ),
         bottomNavigationBar: Column(
