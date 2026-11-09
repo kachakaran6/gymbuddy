@@ -57,11 +57,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     final isDark = theme.brightness == Brightness.dark;
-    final activeAccent = AppAccentColors.fromName(prefs.accentKey);
-    final currentAccentColor = AppTheme.getAccentColor(
-      activeAccent.name,
-      isDark: isDark,
-    );
     final cardBg = isDark ? const Color(0xFF161616) : Colors.white;
     final borderColor = isDark
         ? const Color(0xFF262626)
@@ -340,160 +335,66 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: [
-                            const Text(
-                              'Accent Color',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: currentAccentColor.withValues(
-                                  alpha: isDark ? 0.2 : 0.1,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: currentAccentColor.withValues(
-                                    alpha: isDark ? 0.45 : 0.25,
-                                  ),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: currentAccentColor,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    activeAccent.gymVibe.isNotEmpty
-                                        ? '${activeAccent.name} • ${activeAccent.gymVibe}'
-                                        : activeAccent.name,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Athletic palette tuned for dark & light visibility',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
+                        const Text(
+                          'Accent Color',
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          child: Row(
-                            children: AppAccentColors.all.map((accent) {
-                              final isSelected =
-                                  prefs.accentKey.toLowerCase() ==
-                                  accent.name.toLowerCase();
-                              final color = AppTheme.getAccentColor(
-                                accent.name,
-                                isDark: isDark,
-                              );
-                              final onColor = AppTheme.getOnAccentColor(color);
-                              return Padding(
-                                padding: const EdgeInsets.only(right: AppSpacing.md),
-                                child: Semantics(
-                                  label: '${accent.name} ${accent.gymVibe}',
-                                  selected: isSelected,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () {
-                                      ref
-                                          .read(userPreferencesProvider.notifier)
-                                          .setAccentKey(accent.name.toLowerCase());
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 2,
-                                        vertical: 2,
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          AnimatedContainer(
-                                            duration: AppDurations.fast,
-                                            width: 44,
-                                            height: 44,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: color,
-                                              border: Border.all(
-                                                color: isSelected
-                                                    ? (isDark ? Colors.white : Colors.black)
-                                                    : (isDark
-                                                        ? const Color(0xFF333333)
-                                                        : const Color(0xFFE5E5E5)),
-                                                width: isSelected ? 2.5 : 1.0,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: AppAccentColors.all.map((accent) {
+                            final isSelected =
+                                prefs.accentKey.toLowerCase() ==
+                                accent.name.toLowerCase();
+                            final color = AppTheme.getAccentColor(
+                              accent.name,
+                              isDark: isDark,
+                            );
+                            final onColor = AppTheme.getOnAccentColor(color);
+                            return Semantics(
+                              label: accent.name,
+                              selected: isSelected,
+                              child: GestureDetector(
+                                onTap: () {
+                                  ref
+                                      .read(userPreferencesProvider.notifier)
+                                      .setAccentKey(accent.name.toLowerCase());
+                                },
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: color,
+                                    border: isSelected
+                                        ? Border.all(
+                                            color: color.withValues(alpha: 0.4),
+                                            width: 3,
+                                          )
+                                        : null,
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color: color.withValues(
+                                                alpha: 0.4,
                                               ),
-                                              boxShadow: isSelected
-                                                  ? [
-                                                      BoxShadow(
-                                                        color: color.withValues(
-                                                          alpha: isDark ? 0.55 : 0.35,
-                                                        ),
-                                                        blurRadius: 10,
-                                                        spreadRadius: 2,
-                                                      ),
-                                                    ]
-                                                  : null,
+                                              blurRadius: 8,
+                                              spreadRadius: 1,
                                             ),
-                                            child: isSelected
-                                                ? Icon(
-                                                    Icons.check_rounded,
-                                                    size: 18,
-                                                    color: onColor,
-                                                  )
-                                                : null,
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            accent.name,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: isSelected
-                                                  ? FontWeight.w700
-                                                  : FontWeight.w500,
-                                              color: isSelected
-                                                  ? (isDark ? Colors.white : Colors.black)
-                                                  : (isDark
-                                                      ? const Color(0xFF9A9A9A)
-                                                      : const Color(0xFF6B7280)),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                          ]
+                                        : null,
                                   ),
+                                  child: isSelected
+                                      ? Icon(
+                                          Icons.check_rounded,
+                                          size: 16,
+                                          color: onColor,
+                                        )
+                                      : null,
                                 ),
-                              );
-                            }).toList(),
-                          ),
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ],
                     ),

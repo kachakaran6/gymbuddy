@@ -73,27 +73,27 @@ class GymColors extends ThemeExtension<GymColors> {
   );
 
   static const light = GymColors(
-    pageBg: Color(0xFFF3F4F6),
-    bg: Color(0xFFF9FAFB),
-    bgRaised: Color(0xFFFFFFFF),
-    bgRaised2: Color(0xFFF3F4F6),
-    border: Color(0xFFE5E7EB),
-    navBg: Color(0xE6FFFFFF),
-    text: Color(0xFF111827),
-    textSecondary: Color(0xFF4B5563),
-    textTertiary: Color(0xFF9CA3AF),
-    ember: Color(0xFF111827),
+    pageBg: Color(0xFFEDE6DA),
+    bg: Color(0xFFF7F3EC),
+    bgRaised: Color(0xFFFFFDF9),
+    bgRaised2: Color(0xFFEFE7DA),
+    border: Color(0xFFE3D9C9),
+    navBg: Color(0xE6F7F3EC),
+    text: Color(0xFF1C1714),
+    textSecondary: Color(0xFF6E6358),
+    textTertiary: Color(0xFF857A6E),
+    ember: Color(0xFF1C1714),
     emberDeep: Color(0xFF000000),
-    onEmber: Color(0xFFFFFFFF),
-    emberSoft: Color(0x14111827),
-    emberShadow: Color(0x1A000000),
-    accent: Color(0xFFEA580C),
-    accentSoft: Color(0x1FEA580C),
-    brass: Color(0xFF4B5563),
-    sage: Color(0xFF16A34A),
-    sageSoft: Color(0x1F16A34A),
-    mutedFill: Color(0xFFE5E7EB),
-    heatEmpty: Color(0xFFE5E7EB),
+    onEmber: Color(0xFFFDFBF7),
+    emberSoft: Color(0x141C1714),
+    emberShadow: Color(0x241C1714),
+    accent: Color(0xFFA85B36),
+    accentSoft: Color(0x1FA85B36),
+    brass: Color(0xFF8A6B41),
+    sage: Color(0xFF4F6B41),
+    sageSoft: Color(0x235F7A50),
+    mutedFill: Color(0xFFDCCFB8),
+    heatEmpty: Color(0xFFE8DFD0),
   );
 
   @override
@@ -183,154 +183,41 @@ class AppAccentColor {
   final String name;
   final Color lightColor;
   final Color darkColor;
-  final String gymVibe;
 
-  const AppAccentColor(
-    this.name,
-    this.lightColor,
-    this.darkColor, {
-    this.gymVibe = '',
-  });
+  const AppAccentColor(this.name, this.lightColor, this.darkColor);
 }
 
 class AppAccentColors {
-  // GymBuddy Signature Athletic Accents — 10 Distinct High-Energy Colors
-  // Each color represents a unique gym aesthetic with strict contrast across light & dark modes.
+  // GymMane Signature Accents
+  static const copper = AppAccentColor('Copper', Color(0xFFA85B36), Color(0xFFD9A184));
+  static const brass = AppAccentColor('Brass', Color(0xFF8A6B41), Color(0xFFB98F72));
+  static const sage = AppAccentColor('Sage', Color(0xFF4F6B41), Color(0xFF8FA377));
 
-  /// High-voltage athletic lime energy (Nike Volt / Pre-workout spark)
-  static const volt = AppAccentColor(
-    'Volt',
-    Color(0xFF4D7C0F), // Rich athletic lime (4.6:1 WCAG contrast on light)
-    Color(0xFFCCFF00), // Hyper-voltage electric neon lime on obsidian
-    gymVibe: 'Hyper Energy',
-  );
+  // Vibrant Accents
+  static const blue = AppAccentColor('Blue', Color(0xFF2563EB), Color(0xFF60A5FA));
+  static const orange = AppAccentColor('Orange', Color(0xFFEA580C), Color(0xFFFB923C));
+  static const monochrome = AppAccentColor('Monochrome', Color(0xFF1C1714), Color(0xFFFFFFFF));
 
-  /// Championship podium & trophy gold (PRs, Olympic glory)
-  static const amber = AppAccentColor(
-    'Amber',
-    Color(0xFFB45309), // Burnished trophy gold (5.5:1 on light)
-    Color(0xFFFBBF24), // Radiant Olympic gold on obsidian
-    gymVibe: 'Olympic Gold',
-  );
-
-  /// High-intensity thermo/cardio flame
-  static const orange = AppAccentColor(
-    'Orange',
-    Color(0xFFC2410C), // Bold thermal flame (4.8:1 on light)
-    Color(0xFFFF6A3D), // Glowing thermal neon flame
-    gymVibe: 'Blaze Flame',
-  );
-
-  /// Heavy lifting, powerlifting, max effort adrenaline
-  static const crimson = AppAccentColor(
-    'Crimson',
-    Color(0xFFDC2626), // Powerhouse adrenaline red (5.8:1 on light)
-    Color(0xFFFF453A), // Incandescent power red
-    gymVibe: 'Power Red',
-  );
-
-  /// Heart-rate zone 5, HIIT, cardiovascular pulse
-  static const coral = AppAccentColor(
-    'Coral',
-    Color(0xFFBE123C), // Deep pulse coral (5.0:1 on light)
-    Color(0xFFFF5277), // Electric infrared pulse coral
-    gymVibe: 'Infrared Pulse',
-  );
-
-  /// Deep focus, late-night lifting sessions, modern aesthetic
-  static const violet = AppAccentColor(
-    'Violet',
-    Color(0xFF7C3AED), // Deep electric purple (5.8:1 on light)
-    Color(0xFFA855F7), // Glowing ultraviolet neon
-    gymVibe: 'Night Lift',
-  );
-
-  /// Pure barbell iron steel & heavyweight strength
-  static const blue = AppAccentColor(
-    'Blue',
-    Color(0xFF1D4ED8), // Deep barbell royal cobalt (7.0:1 on light)
-    Color(0xFF60A5FA), // Vibrant electric steel blue
-    gymVibe: 'Cobalt Steel',
-  );
-
-  /// Electrolyte hydration, ice bath recovery, futuristic tech
-  static const cyan = AppAccentColor(
-    'Cyan',
-    Color(0xFF0284C7), // Crisp ice cyan (4.1:1 on light)
-    Color(0xFF38BDF8), // Electric cyber cyan
-    gymVibe: 'Cyber Ice',
-  );
-
-  /// Turf sprints, natural vitality, active muscular endurance
-  static const emerald = AppAccentColor(
-    'Emerald',
-    Color(0xFF047857), // Deep athletic turf green (5.5:1 on light)
-    Color(0xFF34D399), // Radiant mint emerald
-    gymVibe: 'Stealth Turf',
-  );
-
-  /// Minimalist raw obsidian, titanium plates & barbell collar
-  static const monochrome = AppAccentColor(
-    'Monochrome',
-    Color(0xFF1E293B), // Slate charcoal obsidian steel
-    Color(0xFFF1F5F9), // Pure titanium silver-white
-    gymVibe: 'Titanium Mono',
-  );
-
-  // Legacy & Classic Tones (preserved for backward compatibility)
-  static const copper = AppAccentColor('Copper', Color(0xFFA85B36), Color(0xFFD9A184), gymVibe: 'Classic Copper');
-  static const brass = AppAccentColor('Brass', Color(0xFF8A6B41), Color(0xFFB98F72), gymVibe: 'Classic Brass');
-  static const sage = AppAccentColor('Sage', Color(0xFF4F6B41), Color(0xFF8FA377), gymVibe: 'Classic Sage');
-
-  /// Curated list of 10 non-overlapping athletic accents for the UI selector.
   static const List<AppAccentColor> all = [
-    volt,
-    amber,
-    orange,
-    crimson,
-    coral,
-    violet,
-    blue,
-    cyan,
-    emerald,
-    monochrome,
-  ];
-
-  /// Superset including legacy tokens for backward compatibility.
-  static const List<AppAccentColor> allWithLegacy = [
-    ...all,
     copper,
     brass,
     sage,
+    blue,
+    orange,
+    monochrome,
   ];
 
   static AppAccentColor fromLightColor(Color color) {
-    return allWithLegacy.firstWhere(
+    return all.firstWhere(
       (c) => c.lightColor.toARGB32() == color.toARGB32(),
-      orElse: () => amber,
+      orElse: () => copper,
     );
   }
 
   static AppAccentColor fromName(String name) {
-    final lower = name.toLowerCase().trim();
-    if (lower == 'indigo') return cyan; // map default indigo gracefully
-    if (lower == 'volt' || lower == 'lime') return volt;
-    if (lower == 'gold') return amber;
-    if (lower == 'blaze') return orange;
-    if (lower == 'red') return crimson;
-    if (lower == 'infrared') return coral;
-    if (lower == 'purple') return violet;
-    if (lower == 'cobalt') return blue;
-    if (lower == 'ice') return cyan;
-    if (lower == 'turf' || lower == 'green') return emerald;
-    if (lower == 'titanium' || lower == 'stealth' || lower == 'white') return monochrome;
-    if (lower == 'copper') return copper;
-    if (lower == 'brass') return brass;
-    if (lower == 'sage') return sage;
-
-    return allWithLegacy.firstWhere(
-      (c) => c.name.toLowerCase() == lower,
-      orElse: () => amber,
+    return all.firstWhere(
+      (c) => c.name.toLowerCase() == name.toLowerCase(),
+      orElse: () => copper,
     );
   }
 
@@ -339,31 +226,29 @@ class AppAccentColors {
       final colorValue =
           int.parse(hex.replaceFirst('#', ''), radix: 16) | 0xFF000000;
 
-      return allWithLegacy.firstWhere(
-        (c) =>
-            c.lightColor.toARGB32() == colorValue ||
-            c.darkColor.toARGB32() == colorValue,
-        orElse: () => amber,
+      return all.firstWhere(
+        (c) => c.lightColor.toARGB32() == colorValue || c.darkColor.toARGB32() == colorValue,
+        orElse: () => copper,
       );
     } catch (_) {
-      return amber;
+      return copper;
     }
   }
 }
 
 class AppColors {
   // Light Mode
-  static const Color lightBg = Color(0xFFF9FAFB);
-  static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceElevated = Color(0xFFF3F4F6);
-  static const Color lightBorder = Color(0xFFE5E7EB);
-  static const Color lightDivider = Color(0xFFE5E7EB);
-  static const Color lightTextPrimary = Color(0xFF111827);
-  static const Color lightTextSecondary = Color(0xFF4B5563);
-  static const Color lightTextTertiary = Color(0xFF9CA3AF);
-  static const Color lightTextDisabled = Color(0xFFD1D5DB);
+  static const Color lightBg = Color(0xFFEDE6DA);
+  static const Color lightSurface = Color(0xFFF7F3EC);
+  static const Color lightSurfaceElevated = Color(0xFFFFFDF9);
+  static const Color lightBorder = Color(0xFFE3D9C9);
+  static const Color lightDivider = Color(0xFFE3D9C9);
+  static const Color lightTextPrimary = Color(0xFF1C1714);
+  static const Color lightTextSecondary = Color(0xFF6E6358);
+  static const Color lightTextTertiary = Color(0xFF857A6E);
+  static const Color lightTextDisabled = Color(0xFFA89F91);
 
-  // Dark Mode (GymBuddy Obsidian Dark Foundation)
+  // Dark Mode (GymMane Obsidian)
   static const Color darkBg = Color(0xFF0A0908);
   static const Color darkSurface = Color(0xFF0A0A0A);
   static const Color darkSurfaceElevated = Color(0xFF161616);

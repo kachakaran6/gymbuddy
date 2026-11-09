@@ -43,7 +43,7 @@ class PreferencesNotifier extends StateNotifier<UserPreferencesModel> {
   final GymRepository _repo;
 
   PreferencesNotifier(this._repo, {UserPreferencesModel? initial})
-      : super(initial ?? const UserPreferencesModel(themeMode: 'dark', accentKey: 'amber')) {
+      : super(initial ?? const UserPreferencesModel(themeMode: 'dark', accentKey: 'copper')) {
     load();
   }
 

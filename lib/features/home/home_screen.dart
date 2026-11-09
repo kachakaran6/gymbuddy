@@ -332,7 +332,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _buildHubItem(
                   gc,
                   icon: Icons.emoji_events_outlined,
-                  iconColor: AppAccentColors.amber.darkColor,
+                  iconColor: AppAccentColors.brass.darkColor,
                   title: 'Achievements & Badges',
                   subtitle: 'Milestones, personal records, and level progress',
                   onTap: () {
@@ -346,7 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _buildHubItem(
                   gc,
                   icon: Icons.bolt_rounded,
-                  iconColor: AppAccentColors.cyan.darkColor,
+                  iconColor: AppAccentColors.blue.darkColor,
                   title: 'Quick Log Exercise',
                   subtitle: 'Log a quick set without a full workout session',
                   onTap: () {
@@ -358,7 +358,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _buildHubItem(
                   gc,
                   icon: Icons.help_outline_rounded,
-                  iconColor: AppAccentColors.violet.darkColor,
+                  iconColor: AppAccentColors.sage.darkColor,
                   title: 'How to Use Guide',
                   subtitle: 'Interactive tour and workout guidance',
                   onTap: () {

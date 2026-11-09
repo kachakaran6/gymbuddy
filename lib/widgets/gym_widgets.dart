@@ -109,11 +109,11 @@ class GymStatCard extends StatelessWidget {
               Icon(icon, size: 16, color: color),
               const SizedBox(width: AppSpacing.xs),
               Text(
-                label,
+                label.toUpperCase(),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
+                  letterSpacing: 0.5,
                 ),
               ),
             ],

@@ -71,7 +71,7 @@ class GymBottomNav extends StatelessWidget {
                         duration: AppDurations.fast,
                         child: Icon(
                           isSelected ? dest.selectedIcon : dest.icon,
-                          key: ValueKey('nav_${index}_$isSelected'),
+                          key: ValueKey(isSelected),
                           color: isSelected ? accent : unselectedColor,
                           size: isSelected ? 23 : 22,
                         ),

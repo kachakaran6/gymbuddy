@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_theme.dart';
 
-/// Clean, high-contrast elevated container for GymBuddy's sleek dark/light interface
+/// Clean, obsidian rounded card matching GymMane's aesthetic
 class SoftCard extends StatelessWidget {
   const SoftCard({
     super.key,
@@ -76,41 +76,39 @@ class PrimaryButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(100),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.14),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: buttonBg.withValues(alpha: 0.25),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
             children: [
               if (isLoading)
                 SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2.2,
+                    strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(buttonFg),
                   ),
                 )
               else ...[
                 if (icon != null) ...[
-                  Icon(icon, size: 18, color: buttonFg),
-                  const SizedBox(width: 6),
+                  Icon(icon, size: 20, color: buttonFg),
+                  const SizedBox(width: 10),
                 ],
                 Flexible(
                   child: Text(
-                    label,
+                    label.toUpperCase(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTheme.d(
-                      14,
+                      15,
                       weight: FontWeight.w700,
                       color: buttonFg,
-                      letterSpacing: 0.3,
+                      letterSpacing: 2.0,
                     ),
                   ),
                 ),
@@ -148,7 +146,7 @@ class SecondaryButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(100),
         child: Container(
           height: height,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
             color: gc.bgRaised,
             border: Border.all(color: gc.border),
@@ -159,19 +157,19 @@ class SecondaryButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: gc.text),
-                const SizedBox(width: 4),
+                Icon(icon, size: 18, color: gc.text),
+                const SizedBox(width: 8),
               ],
               Flexible(
                 child: Text(
-                  label,
+                  label.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTheme.s(
-                    12.5,
+                  style: AppTheme.d(
+                    13,
                     weight: FontWeight.w600,
                     color: gc.text,
-                    letterSpacing: 0.2,
+                    letterSpacing: 1.5,
                   ),
                 ),
               ),
@@ -183,14 +181,14 @@ class SecondaryButton extends StatelessWidget {
   }
 }
 
-/// Category and context subtitle tag
+/// Upper-case tracked section subheader (like "TODAY'S FOCUS" or "ACTIVITY")
 class Kicker extends StatelessWidget {
   const Kicker(
     this.text, {
     super.key,
     this.color,
-    this.size = 12,
-    this.spacing = 0.4,
+    this.size = 11,
+    this.spacing = 2.5,
   });
 
   final String text;
@@ -202,11 +200,11 @@ class Kicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final gc = context.gc;
     return Text(
-      text,
-      style: AppTheme.s(
+      text.toUpperCase(),
+      style: AppTheme.d(
         size,
         weight: FontWeight.w600,
-        color: color ?? gc.accent,
+        color: color ?? gc.brass,
         letterSpacing: spacing,
       ),
     );
@@ -458,7 +456,7 @@ class StepperControl extends StatelessWidget {
   }
 }
 
-/// Ambient glow placeholder kept for API compatibility, renders clean transparent space
+/// Ambient glow background decoration
 class AmbientGlow extends StatelessWidget {
   const AmbientGlow({super.key, this.color, this.radius = 180});
 
@@ -467,6 +465,24 @@ class AmbientGlow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox.shrink();
+    final gc = context.gc;
+    return IgnorePointer(
+      child: Align(
+        alignment: Alignment.topRight,
+        child: Container(
+          width: radius * 2,
+          height: radius * 2,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                (color ?? gc.accent).withValues(alpha: 0.14),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

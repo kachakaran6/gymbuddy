@@ -5,18 +5,16 @@ import 'app_colors.dart';
 class AppTheme {
   static const String disp = 'Oswald';
   static const String sans = 'IBM Plex Sans';
-  static const List<String> fontFallbacks = ['Roboto', 'Segoe UI', 'San Francisco', 'Helvetica Neue', 'sans-serif'];
 
   static TextStyle d(
     double size, {
     FontWeight weight = FontWeight.w700,
     Color? color,
     double? letterSpacing,
-    double height = 1.15,
+    double height = 1.0,
   }) =>
       TextStyle(
         fontFamily: disp,
-        fontFamilyFallback: fontFallbacks,
         fontSize: size,
         fontWeight: weight,
         color: color,
@@ -33,7 +31,6 @@ class AppTheme {
   }) =>
       TextStyle(
         fontFamily: sans,
-        fontFamilyFallback: fontFallbacks,
         fontSize: size,
         fontWeight: weight,
         color: color,
@@ -49,7 +46,7 @@ class AppTheme {
 
   /// Calculates readable contrast text/icon color for elements placed on top of [accentColor].
   static Color getOnAccentColor(Color accentColor) {
-    return accentColor.computeLuminance() > 0.42 ? Colors.black : Colors.white;
+    return accentColor.computeLuminance() > 0.45 ? Colors.black : Colors.white;
   }
 
   /// Build Light Theme with strict neutral white/light-gray foundation and dynamic accent highlights.
@@ -96,12 +93,7 @@ class AppTheme {
       brightness: Brightness.light,
       fontFamily: sans,
       colorScheme: colorScheme,
-      extensions: [
-        GymColors.light.copyWith(
-          accent: accent,
-          accentSoft: accent.withValues(alpha: 0.14),
-        ),
-      ],
+      extensions: [GymColors.light.copyWith(accent: accent)],
       scaffoldBackgroundColor: background,
       canvasColor: background,
       cardColor: surface,
@@ -335,12 +327,7 @@ class AppTheme {
       brightness: Brightness.dark,
       fontFamily: sans,
       colorScheme: colorScheme,
-      extensions: [
-        GymColors.dark.copyWith(
-          accent: accent,
-          accentSoft: accent.withValues(alpha: 0.18),
-        ),
-      ],
+      extensions: [GymColors.dark.copyWith(accent: accent)],
       scaffoldBackgroundColor: background,
       canvasColor: background,
       cardColor: surfaceContainer,

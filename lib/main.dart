@@ -24,12 +24,12 @@ void main() async {
 
   // Pre-load cached theme preferences to eliminate white/light theme flash on startup
   String initialTheme = 'dark';
-  String initialAccent = 'amber';
+  String initialAccent = 'copper';
   bool initialOnboarding = false;
   try {
     final sp = await SharedPreferences.getInstance();
     initialTheme = sp.getString('pref_theme_mode') ?? 'dark';
-    initialAccent = sp.getString('pref_accent_key') ?? 'amber';
+    initialAccent = sp.getString('pref_accent_key') ?? 'copper';
     initialOnboarding = sp.getBool('onboarding_complete') ?? false;
   } catch (_) {}
 

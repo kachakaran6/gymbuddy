@@ -36,27 +36,20 @@ void main() {
     // ─────────────────────────────────────────────────────────────
     group('1. State Management & Lifecycle Transitions', () {
       test('Preferences State: Accent keys, Theme modes, and Unit changes', () {
-        // Verify default accents
-        expect(AppAccentColors.amber.name, 'Amber');
-        expect(AppAccentColors.cyan.name, 'Cyan');
-        expect(AppAccentColors.emerald.name, 'Emerald');
-        expect(AppAccentColors.crimson.name, 'Crimson');
-        expect(AppAccentColors.violet.name, 'Violet');
+        // Verify restored classic accents
+        expect(AppAccentColors.copper.name, 'Copper');
+        expect(AppAccentColors.brass.name, 'Brass');
+        expect(AppAccentColors.sage.name, 'Sage');
+        expect(AppAccentColors.blue.name, 'Blue');
+        expect(AppAccentColors.orange.name, 'Orange');
         expect(AppAccentColors.monochrome.name, 'Monochrome');
 
         // Verify fallback and resolver
-        final resolved = AppAccentColors.fromName('amber');
-        expect(resolved.name, 'Amber');
+        final resolved = AppAccentColors.fromName('copper');
+        expect(resolved.name, 'Copper');
 
         final fallback = AppAccentColors.fromName('unknown_accent');
-        expect(fallback.name, 'Amber');
-
-        // Backward compatibility resolver for legacy tokens
-        final legacyCopper = AppAccentColors.fromName('copper');
-        expect(legacyCopper.name, 'Copper');
-
-        final legacyIndigo = AppAccentColors.fromName('indigo');
-        expect(legacyIndigo.name, 'Cyan');
+        expect(fallback.name, 'Copper');
       });
 
       test('Level & XP Math Formula Transitions', () {

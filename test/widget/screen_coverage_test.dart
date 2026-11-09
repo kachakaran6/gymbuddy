@@ -74,8 +74,8 @@ void main() {
       await pumpScreen(tester, const StatisticsScreen());
 
       expect(find.byType(StatisticsScreen), findsOneWidget);
-      expect(find.text('This Week'), findsOneWidget);
-      expect(find.text('Streak'), findsOneWidget);
+      expect(find.text('THIS WEEK'), findsOneWidget);
+      expect(find.text('STREAK'), findsOneWidget);
     });
 
     testWidgets('CalendarScreen renders monthly grid and month header', (tester) async {
