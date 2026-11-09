@@ -57,3 +57,10 @@ flutter-applcations-*.json
 *-*.json
 android/.project
 android/.settings/
+
+# Temporary test binaries and generated media
+sqlite3.dll
+*.png
+/artifacts/
+/reports/
+**/fastlane/report.xml
