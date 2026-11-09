@@ -77,24 +77,42 @@ platform :android do
     track_name = options[:track] || 'alpha'
     build_num = get_target_build_number(options)
     aab_path = build_flutter_aab(build_num)
+    mapping_path = File.expand_path("../../build/app/outputs/mapping/release/mapping.txt", __dir__)
 
-    upload_to_play_store(
+    # Generate professional release notes for Google Play track
+    changelogs_dir = File.expand_path("metadata/android/en-US/changelogs", __dir__)
+    FileUtils.mkdir_p(changelogs_dir)
+    changelog_content = options[:release_notes] || options[:changelog] || [
+      "• Samyukt Android Ecosystem Standard integration with native Google Play in-app updates and reviews.",
+      "• 10 signature athletic accent colorways calibrated for high-contrast dark and light modes.",
+      "• Centralized Our Apps showcase powered by official Samyukt registry with offline cache.",
+      "• Enhanced offline workout logger, session recovery, and performance optimizations."
+    ].join("\n")
+    File.write(File.join(changelogs_dir, "#{build_num}.txt"), changelog_content)
+    UI.success("Generated professional release notes for build #{build_num}")
+
+    upload_params = {
       track: track_name,
       aab: aab_path,
       json_key: File.expand_path("api-key.json", __dir__),
       skip_upload_apk: true,
-      skip_upload_metadata: true,
+      skip_upload_metadata: false,
+      skip_upload_changelogs: false,
       skip_upload_images: true,
       skip_upload_screenshots: true,
       timeout: 600
-    )
+    }
+    upload_params[:mapping] = mapping_path if File.exist?(mapping_path)
+
+    upload_to_play_store(upload_params)
   end
 
   lane :internal do |options|
     build_num = get_target_build_number(options)
     aab_path = build_flutter_aab(build_num)
+    mapping_path = File.expand_path("../../build/app/outputs/mapping/release/mapping.txt", __dir__)
 
-    upload_to_play_store(
+    upload_params = {
       track: 'internal',
       aab: aab_path,
       json_key: File.expand_path("api-key.json", __dir__),
@@ -103,21 +121,29 @@ platform :android do
       skip_upload_images: true,
       skip_upload_screenshots: true,
       timeout: 600
-    )
+    }
+    upload_params[:mapping] = mapping_path if File.exist?(mapping_path)
+
+    upload_to_play_store(upload_params)
   end
 
   lane :beta do |options|
     build_num = get_target_build_number(options)
     aab_path = build_flutter_aab(build_num)
+    mapping_path = File.expand_path("../../build/app/outputs/mapping/release/mapping.txt", __dir__)
 
-    upload_to_play_store(
+    upload_params = {
       track: 'beta',
       aab: aab_path,
       json_key: File.expand_path("api-key.json", __dir__),
       skip_upload_apk: true,
       skip_upload_metadata: true,
       skip_upload_images: true,
-      skip_upload_screenshots: true
-    )
+      skip_upload_screenshots: true,
+      timeout: 600
+    }
+    upload_params[:mapping] = mapping_path if File.exist?(mapping_path)
+
+    upload_to_play_store(upload_params)
   end
 end
