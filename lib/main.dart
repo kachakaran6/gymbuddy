@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/providers/app_providers.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'data/database/database.dart';
+import 'data/repositories/repositories.dart';
 import 'domain/models/models.dart';
 
 void main() async {
@@ -22,29 +24,53 @@ void main() async {
     ),
   );
 
-  // Pre-load cached theme preferences to eliminate white/light theme flash on startup
+  // Pre-load preferences from DB and SharedPreferences before first frame to guarantee zero flash
+  final db = AppDatabase();
+  final repo = GymRepository(db);
+
   String initialTheme = 'dark';
   String initialAccent = 'copper';
   bool initialOnboarding = false;
+
+  UserPreferencesModel initialPrefs;
   try {
     final sp = await SharedPreferences.getInstance();
     initialTheme = sp.getString('pref_theme_mode') ?? 'dark';
     initialAccent = sp.getString('pref_accent_key') ?? 'copper';
     initialOnboarding = sp.getBool('onboarding_complete') ?? false;
-  } catch (_) {}
 
-  final initialPrefs = UserPreferencesModel(
-    themeMode: initialTheme,
-    accentKey: initialAccent,
-    onboardingComplete: initialOnboarding,
-  );
+    // Resolve true persistent preferences from SQLite before UI renders
+    final dbPrefs = await repo.getUserPreferences();
+    initialTheme = dbPrefs.themeMode;
+    initialAccent = dbPrefs.accentKey;
+    initialOnboarding = dbPrefs.onboardingComplete || initialOnboarding;
+
+    // Ensure SharedPreferences is synchronized to prevent any cold-start flash
+    await sp.setString('pref_theme_mode', initialTheme);
+    await sp.setString('pref_accent_key', initialAccent);
+    await sp.setBool('onboarding_complete', initialOnboarding);
+
+    initialPrefs = dbPrefs.copyWith(
+      themeMode: initialTheme,
+      accentKey: initialAccent,
+      onboardingComplete: initialOnboarding,
+    );
+  } catch (_) {
+    initialPrefs = UserPreferencesModel(
+      themeMode: initialTheme,
+      accentKey: initialAccent,
+      onboardingComplete: initialOnboarding,
+    );
+  }
 
   runApp(
     ProviderScope(
       overrides: [
+        databaseProvider.overrideWithValue(db),
+        repositoryProvider.overrideWithValue(repo),
         userPreferencesProvider.overrideWith(
           (ref) => PreferencesNotifier(
-            ref.watch(repositoryProvider),
+            repo,
             initial: initialPrefs,
           ),
         ),

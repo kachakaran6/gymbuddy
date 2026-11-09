@@ -53,6 +53,9 @@ class PreferencesNotifier extends StateNotifier<UserPreferencesModel> {
       final sp = await SharedPreferences.getInstance();
       await sp.setString('pref_theme_mode', prefs.themeMode);
       await sp.setString('pref_accent_key', prefs.accentKey);
+      if (prefs.onboardingComplete) {
+        await sp.setBool('onboarding_complete', true);
+      }
       final spOnboarding = sp.getBool('onboarding_complete') ?? false;
       if (spOnboarding && !prefs.onboardingComplete) {
         final updated = prefs.copyWith(onboardingComplete: true);
@@ -61,7 +64,11 @@ class PreferencesNotifier extends StateNotifier<UserPreferencesModel> {
         return;
       }
     } catch (_) {}
-    state = prefs;
+    if (state.onboardingComplete && !prefs.onboardingComplete) {
+      state = prefs.copyWith(onboardingComplete: true);
+    } else {
+      state = prefs;
+    }
   }
 
   Future<void> setThemeMode(String themeMode) async {
