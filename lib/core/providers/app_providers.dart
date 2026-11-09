@@ -8,7 +8,10 @@ import '../../domain/services/streak_calculator.dart';
 import '../../data/services/backup_service.dart';
 import '../../data/services/universal_import_service.dart';
 import '../services/rest_alarm_service.dart';
+import '../services/samyukt_registry_service.dart';
+import '../services/app_metadata_service.dart';
 import '../utils/date_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Singletons
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -39,22 +42,43 @@ final universalImportServiceProvider = Provider<UniversalImportService>((ref) {
 class PreferencesNotifier extends StateNotifier<UserPreferencesModel> {
   final GymRepository _repo;
 
-  PreferencesNotifier(this._repo) : super(const UserPreferencesModel()) {
+  PreferencesNotifier(this._repo, {UserPreferencesModel? initial})
+      : super(initial ?? const UserPreferencesModel(themeMode: 'dark', accentKey: 'amber')) {
     load();
   }
 
   Future<void> load() async {
     final prefs = await _repo.getUserPreferences();
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString('pref_theme_mode', prefs.themeMode);
+      await sp.setString('pref_accent_key', prefs.accentKey);
+      final spOnboarding = sp.getBool('onboarding_complete') ?? false;
+      if (spOnboarding && !prefs.onboardingComplete) {
+        final updated = prefs.copyWith(onboardingComplete: true);
+        state = updated;
+        await _repo.updateUserPreferences(updated);
+        return;
+      }
+    } catch (_) {}
     state = prefs;
   }
 
   Future<void> setThemeMode(String themeMode) async {
     state = state.copyWith(themeMode: themeMode);
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString('pref_theme_mode', themeMode);
+    } catch (_) {}
     await _repo.updateUserPreferences(state);
   }
 
   Future<void> setAccentKey(String accentKey) async {
     state = state.copyWith(accentKey: accentKey);
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString('pref_accent_key', accentKey);
+    } catch (_) {}
     await _repo.updateUserPreferences(state);
   }
 
@@ -65,6 +89,10 @@ class PreferencesNotifier extends StateNotifier<UserPreferencesModel> {
 
   Future<void> setOnboardingComplete(bool complete) async {
     state = state.copyWith(onboardingComplete: complete);
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setBool('onboarding_complete', complete);
+    } catch (_) {}
     await _repo.updateUserPreferences(state);
   }
 
@@ -78,6 +106,32 @@ final userPreferencesProvider =
     StateNotifierProvider<PreferencesNotifier, UserPreferencesModel>((ref) {
       return PreferencesNotifier(ref.watch(repositoryProvider));
     });
+
+// User Name State
+class UserNameNotifier extends StateNotifier<String> {
+  UserNameNotifier() : super('') {
+    load();
+  }
+
+  Future<void> load() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      state = sp.getString('user_name') ?? '';
+    } catch (_) {}
+  }
+
+  Future<void> setUserName(String name) async {
+    state = name;
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString('user_name', name);
+    } catch (_) {}
+  }
+}
+
+final userNameProvider = StateNotifierProvider<UserNameNotifier, String>((ref) {
+  return UserNameNotifier();
+});
 
 // Schedule State
 class ScheduleNotifier extends StateNotifier<List<GymScheduleModel>> {
@@ -196,6 +250,10 @@ class AttendanceNotifier extends StateNotifier<AttendanceState> {
         .where((o) => o.enabled)
         .map((o) => o.offsetMinutes)
         .toList();
+
+    if (schedules.isEmpty) {
+      return;
+    }
 
     final sampleSchedule = schedules.firstWhere(
       (s) => s.enabled,
@@ -479,3 +537,18 @@ final previousPerformanceProvider =
         params.weightUnit,
       );
     });
+
+// Samyukt Ecosystem Providers
+final samyuktRegistryServiceProvider = Provider<SamyuktRegistryService>((ref) {
+  return SamyuktRegistryService();
+});
+
+final samyuktCatalogProvider =
+    FutureProvider<RegistryResult>((ref) async {
+  final service = ref.watch(samyuktRegistryServiceProvider);
+  return await service.getApps();
+});
+
+final appMetadataProvider = FutureProvider<AppMetadata>((ref) async {
+  return await AppMetadataService.getAppMetadata();
+});

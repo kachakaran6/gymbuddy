@@ -3,6 +3,16 @@
 class AppConstants {
   static const String appName = 'GymBuddy';
   static const String appVersion = '1.0.0';
+  static const String applicationId = 'com.gymbuddy.application';
+  static const String appDescription =
+      'Offline-first workout & consistency companion';
+  static const String playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.gymbuddy.application';
+  static const String samyuktWebsiteUrl = 'https://samyukt.pro';
+  static const String samyuktRegistryUrl =
+      'https://raw.githubusercontent.com/kachakaran6/Application-json/main/app.json';
+  static const String samyuktAssetBaseUrl =
+      'https://raw.githubusercontent.com/kachakaran6/Application-json/main/images/';
 
   // Default Schedule Preferences
   static const List<int> defaultGymDays = [1, 3, 5, 6]; // Mon, Wed, Fri, Sat
@@ -15,7 +25,7 @@ class AppConstants {
   // Default Units & Theme
   static const String defaultWeightUnit = 'kg'; // 'kg' or 'lb'
   static const String defaultThemeMode = 'system'; // 'system', 'light', 'dark'
-  static const String defaultAccentKey = 'indigo';
+  static const String defaultAccentKey = 'amber';
 
   // XP Rules
   static const int xpCheckIn = 10;
