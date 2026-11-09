@@ -1,0 +1,4 @@
+appId: com.gymbuddy.application
+---
+- launchApp
+- assertVisible: "GymBuddy|GYMBUDDY|SKIP|Home"
