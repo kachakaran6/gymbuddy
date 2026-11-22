@@ -79,10 +79,6 @@ class OurAppsScreen extends ConsumerWidget {
           AppSpacing.xxl,
         ),
         children: [
-          // Ecosystem Header Banner
-          _buildEcosystemHeader(context, gc, isDark),
-          const SizedBox(height: AppSpacing.base),
-
           // Offline Cache Notification
           if (result.isFromCache) ...[
             Container(
@@ -134,117 +130,6 @@ class OurAppsScreen extends ConsumerWidget {
                   ),
                 )),
           ],
-
-          const SizedBox(height: AppSpacing.xl),
-
-          // Standardized Samyukt Attribution
-          Center(
-            child: InkWell(
-              onTap: () => _openUrl(AppConstants.samyuktWebsiteUrl),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.favorite_rounded,
-                      size: 14,
-                      color: gc.accent,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      'Made with care by Samyukt',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: gc.textSecondary,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Icon(
-                      Icons.arrow_outward_rounded,
-                      size: 13,
-                      color: gc.textSecondary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEcosystemHeader(
-    BuildContext context,
-    GymColors gc,
-    bool isDark,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.base),
-      decoration: BoxDecoration(
-        color: gc.bgRaised,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: gc.border, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: gc.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Icon(
-                  Icons.apps_rounded,
-                  color: gc.accent,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Samyukt Ecosystem',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: gc.text,
-                      ),
-                    ),
-                    Text(
-                      'Curated suite of purposeful mobile utilities',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: gc.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            'Explore our growing family of offline-first, privacy-focused productivity and health companions. Crafted with precision and zero user tracking.',
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.4,
-              color: gc.textSecondary,
-            ),
-          ),
         ],
       ),
     );
@@ -326,13 +211,6 @@ class OurAppsScreen extends ConsumerWidget {
 
   String _formatDate(DateTime dt) {
     return '${dt.day}/${dt.month}/${dt.year}';
-  }
-
-  static Future<void> _openUrl(String url) async {
-    final uri = Uri.parse(url);
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {}
   }
 }
 

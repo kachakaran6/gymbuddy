@@ -33,7 +33,7 @@ def get_target_build_number(options = {})
     target_build = default_next
   end
 
-  # Update pubspec.yaml to sync version
+  # Update pubspec.yaml in-place
   if File.exist?(pubspec_path)
     new_content = File.read(pubspec_path).sub(/^version:\s*.+$/, "version: #{current_version}+#{target_build}")
     File.write(pubspec_path, new_content)
@@ -44,7 +44,24 @@ def get_target_build_number(options = {})
   target_build
 end
 
-def build_flutter_aab(build_num)
+def get_full_version_string
+  pubspec_path = File.expand_path("../../pubspec.yaml", __dir__)
+  if File.exist?(pubspec_path)
+    content = File.read(pubspec_path)
+    if (match = content.match(/^version:\s*([^\s]+)/))
+      return match[1]
+    end
+  end
+  "1.0.0+1"
+end
+
+def build_flutter_aab(build_num, options = {})
+  aab_path = File.expand_path("../../build/app/outputs/bundle/release/app-release.aab", __dir__)
+  if (options[:skip_build] || ENV["SKIP_BUILD"] == "1") && File.exist?(aab_path)
+    UI.success("Reusing existing built release appbundle at: #{aab_path}")
+    return aab_path
+  end
+
   root_dir = File.expand_path("../..", __dir__)
   UI.message("Building Flutter release appbundle from: #{root_dir}")
   
@@ -52,12 +69,28 @@ def build_flutter_aab(build_num)
     sh("flutter build appbundle --release --build-number=#{build_num}")
   end
 
-  aab_path = File.expand_path("../../build/app/outputs/bundle/release/app-release.aab", __dir__)
   unless File.exist?(aab_path)
     UI.user_error!("Could not find built appbundle at: #{aab_path}")
   end
   
   aab_path
+end
+
+def commit_and_tag_release(track_name, build_num)
+  root_dir = File.expand_path("../..", __dir__)
+  version_str = get_full_version_string
+  tag_name = "v#{version_str}"
+
+  UI.message("Creating Git release commit and tag: #{tag_name}")
+  Dir.chdir(root_dir) do
+    sh("git add .")
+    sh("git commit -m \"chore(release): bump version to #{version_str} and deploy to #{track_name}\"")
+    sh("git tag -a \"#{tag_name}\" -m \"Release #{version_str} (#{track_name})\"")
+    sh("git push origin --follow-tags")
+  end
+  UI.success("Successfully pushed release commit and tag to remote!")
+rescue => e
+  UI.important("Git commit/tagging skipped or encountered an error: #{e.message}")
 end
 
 platform :android do
@@ -73,23 +106,40 @@ platform :android do
     build_flutter_aab(build_num)
   end
 
+  lane :internal do |options|
+    deploy_to_track('internal', options)
+  end
+
   lane :closed do |options|
     track_name = options[:track] || 'alpha'
+    deploy_to_track(track_name, options)
+  end
+
+  lane :beta do |options|
+    deploy_to_track('beta', options)
+  end
+
+  lane :production do |options|
+    deploy_to_track('production', options)
+  end
+
+  def deploy_to_track(track_name, options)
     build_num = get_target_build_number(options)
-    aab_path = build_flutter_aab(build_num)
+    aab_path = build_flutter_aab(build_num, options)
     mapping_path = File.expand_path("../../build/app/outputs/mapping/release/mapping.txt", __dir__)
 
-    # Generate professional release notes for Google Play track
+    # Write changelog
     changelogs_dir = File.expand_path("metadata/android/en-US/changelogs", __dir__)
     FileUtils.mkdir_p(changelogs_dir)
     changelog_content = options[:release_notes] || options[:changelog] || [
-      "• Samyukt Android Ecosystem Standard integration with native Google Play in-app updates and reviews.",
-      "• 10 signature athletic accent colorways calibrated for high-contrast dark and light modes.",
-      "• Centralized Our Apps showcase powered by official Samyukt registry with offline cache.",
-      "• Enhanced offline workout logger, session recovery, and performance optimizations."
+      "• Streamlined Settings with enhanced privacy transparency and offline-first compliance.",
+      "• Cleaned companion apps catalog with instant offline support.",
+      "• Resolved workout status header layout and text overlap on the Home Screen.",
+      "• Standardized open-source license registration in compliance with Google Play distribution policies.",
+      "• Performance improvements, stability upgrades, and bug fixes."
     ].join("\n")
     File.write(File.join(changelogs_dir, "#{build_num}.txt"), changelog_content)
-    UI.success("Generated professional release notes for build #{build_num}")
+    UI.success("Generated changelog for build #{build_num}")
 
     upload_params = {
       track: track_name,
@@ -100,50 +150,17 @@ platform :android do
       skip_upload_changelogs: false,
       skip_upload_images: true,
       skip_upload_screenshots: true,
-      timeout: 600
+      timeout: 600,
+      changes_not_sent_for_review: false,
+      rescue_changes_not_sent_for_review: true
     }
     upload_params[:mapping] = mapping_path if File.exist?(mapping_path)
 
     upload_to_play_store(upload_params)
-  end
+    UI.success("Successfully uploaded Build #{build_num} to Google Play track [#{track_name}]! 🎉")
 
-  lane :internal do |options|
-    build_num = get_target_build_number(options)
-    aab_path = build_flutter_aab(build_num)
-    mapping_path = File.expand_path("../../build/app/outputs/mapping/release/mapping.txt", __dir__)
-
-    upload_params = {
-      track: 'internal',
-      aab: aab_path,
-      json_key: File.expand_path("api-key.json", __dir__),
-      skip_upload_apk: true,
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-      timeout: 600
-    }
-    upload_params[:mapping] = mapping_path if File.exist?(mapping_path)
-
-    upload_to_play_store(upload_params)
-  end
-
-  lane :beta do |options|
-    build_num = get_target_build_number(options)
-    aab_path = build_flutter_aab(build_num)
-    mapping_path = File.expand_path("../../build/app/outputs/mapping/release/mapping.txt", __dir__)
-
-    upload_params = {
-      track: 'beta',
-      aab: aab_path,
-      json_key: File.expand_path("api-key.json", __dir__),
-      skip_upload_apk: true,
-      skip_upload_metadata: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-      timeout: 600
-    }
-    upload_params[:mapping] = mapping_path if File.exist?(mapping_path)
-
-    upload_to_play_store(upload_params)
+    if options[:git] == true || options[:git_tag] == true
+      commit_and_tag_release(track_name, build_num)
+    end
   end
 end

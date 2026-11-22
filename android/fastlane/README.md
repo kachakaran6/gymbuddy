@@ -31,14 +31,6 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 
 
-### android closed
-
-```sh
-[bundle exec] fastlane android closed
-```
-
-
-
 ### android internal
 
 ```sh
@@ -47,10 +39,26 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 
 
+### android closed
+
+```sh
+[bundle exec] fastlane android closed
+```
+
+
+
 ### android beta
 
 ```sh
 [bundle exec] fastlane android beta
+```
+
+
+
+### android production
+
+```sh
+[bundle exec] fastlane android production
 ```
 
 

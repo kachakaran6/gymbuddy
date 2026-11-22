@@ -49,15 +49,16 @@ class SamyuktRegistryService {
       if (response.statusCode == 200) {
         final body = response.body;
         final apps = parseAppsJson(body);
+        if (apps.isNotEmpty) {
+          // Cache valid response
+          await _saveToCache(body);
 
-        // Cache valid response
-        await _saveToCache(body);
-
-        return RegistryResult(
-          apps: apps,
-          isFromCache: false,
-          cachedAt: DateTime.now(),
-        );
+          return RegistryResult(
+            apps: apps,
+            isFromCache: false,
+            cachedAt: DateTime.now(),
+          );
+        }
       } else {
         debugPrint(
             'SamyuktRegistryService: HTTP ${response.statusCode}, falling back to cache');
@@ -69,15 +70,139 @@ class SamyuktRegistryService {
 
     // 2. Fallback to cached registry if network failed or was offline
     final cached = await getCachedApps();
-    if (cached != null) {
+    if (cached != null && cached.apps.isNotEmpty) {
       return cached;
     }
 
-    // 3. Return empty result if neither network nor cache is available
-    return const RegistryResult(
-      apps: [],
-      isFromCache: false,
+    // 3. Fallback to bundled known catalog so applications always render
+    return RegistryResult(
+      apps: _getBundledFallbackApps(),
+      isFromCache: true,
+      cachedAt: DateTime.now(),
     );
+  }
+
+  static List<SamyuktAppModel> _getBundledFallbackApps() {
+    return const [
+      SamyuktAppModel(
+        id: 'com.vaultx.vault_x',
+        appName: 'Vault X',
+        packageName: 'com.vaultx.vault_x',
+        playStoreUrl:
+            'https://play.google.com/store/apps/details?id=com.vaultx.vault_x',
+        iconUrl:
+            'https://raw.githubusercontent.com/kachakaran6/Application-json/main/images/vaultx.png',
+        status: SamyuktAppStatus.production,
+        category: 'Utility & Privacy',
+        tagline: 'Secure on-device digital bookmark vault',
+        description:
+            'The ultimate link vault. Save, organize, and secure your digital bookmarks effortlessly.',
+        featured: true,
+        highlights: [
+          '100% offline local database with hardware-backed encryption',
+          'Fast biometric authentication (Fingerprint / Face ID)',
+          'Instant categorisation, tagging, and encrypted export backups'
+        ],
+      ),
+      SamyuktAppModel(
+        id: 'com.trusttracker.trust_tracker_flutter',
+        appName: 'Trust Tracker',
+        packageName: 'com.trusttracker.trust_tracker_flutter',
+        playStoreUrl:
+            'https://play.google.com/store/apps/details?id=com.trusttracker.trust_tracker_flutter',
+        iconUrl:
+            'https://raw.githubusercontent.com/kachakaran6/Application-json/main/images/trust-tracker.png',
+        status: SamyuktAppStatus.production,
+        category: 'Utility & Personal Finance',
+        tagline: 'Offline subscription and expense ledger',
+        description:
+            'A secure personal finance app to effortlessly track your subscriptions and manage daily expenses',
+        featured: true,
+        highlights: [
+          'Automated subscription renewal reminders and cost projections',
+          'Zero-cloud sync guaranteeing total financial privacy',
+          'Interactive analytics and budget breakdown visualisations'
+        ],
+      ),
+      SamyuktAppModel(
+        id: 'com.snapdocs.app',
+        appName: 'SnapDocs',
+        packageName: 'com.snapdocs.app',
+        playStoreUrl:
+            'https://play.google.com/store/apps/details?id=com.snapdocs.app',
+        iconUrl:
+            'https://raw.githubusercontent.com/kachakaran6/Application-json/main/images/snapdocs.png',
+        status: SamyuktAppStatus.production,
+        category: 'Utility & Document Security',
+        tagline: 'Offline document scanner and vault',
+        description: 'Offline secure document storage application.',
+        featured: false,
+        highlights: [
+          'On-device OCR and document text extraction',
+          'Biometrically secured isolated document vaults',
+          'Compliance-friendly local PDF generation'
+        ],
+      ),
+      SamyuktAppModel(
+        id: 'com.noctune.music',
+        appName: 'Noctune',
+        packageName: 'com.noctune.music',
+        playStoreUrl:
+            'https://play.google.com/store/apps/details?id=com.noctune.music',
+        iconUrl:
+            'https://raw.githubusercontent.com/kachakaran6/Application-json/main/images/noctune.png',
+        status: SamyuktAppStatus.production,
+        category: 'Utility & Audio Player',
+        tagline: 'Modern offline music player',
+        description:
+            'Modern music player for music lovers who want to listen offline.',
+        featured: false,
+        highlights: [
+          'Hardware-accelerated audio codec pipeline',
+          'Zero background battery drain and lightweight memory footprint',
+          'Curated tag management and offline playlist synchronization'
+        ],
+      ),
+      SamyuktAppModel(
+        id: 'com.arrowz.app',
+        appName: 'ArrowZ - Arrow Escape Puzzle',
+        packageName: 'com.arrowz.app',
+        playStoreUrl:
+            'https://play.google.com/store/apps/details?id=com.arrowz.app',
+        iconUrl:
+            'https://raw.githubusercontent.com/kachakaran6/Application-json/main/images/arrowz.png',
+        status: SamyuktAppStatus.production,
+        category: 'Games & Logic Puzzle',
+        tagline: 'Calm and thoughtful arrow-escape logic puzzle',
+        description:
+            'A calm, thoughtful offline puzzle game where you untangle intricate arrow boards, discover clear paths, and escape arrows one tap at a time.',
+        featured: true,
+        highlights: [
+          'Minimalist clean aesthetic with relaxing haptic responses',
+          'Over 100 progressively designed spatial reasoning stages',
+          'Pure offline gameplay with zero ad interruptions'
+        ],
+      ),
+      SamyuktAppModel(
+        id: 'com.gymbuddy.application',
+        appName: 'GymBuddy',
+        packageName: 'com.gymbuddy.application',
+        playStoreUrl:
+            'https://play.google.com/store/apps/details?id=com.gymbuddy.application',
+        iconUrl: '',
+        status: SamyuktAppStatus.production,
+        category: 'Health & Fitness',
+        tagline: 'Offline-first fitness consistency companion',
+        description:
+            'Offline workout logger and consistency companion.',
+        featured: true,
+        highlights: [
+          '100% offline local SQLite storage with zero tracking',
+          'Interactive body heat map and 1RM calculators',
+          'Custom routines and workout history logging'
+        ],
+      ),
+    ];
   }
 
   /// Parses the raw JSON response strictly according to the Samyukt specification.

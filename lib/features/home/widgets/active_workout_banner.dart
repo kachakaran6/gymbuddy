@@ -199,17 +199,21 @@ class _ActiveWorkoutHomeBannerState
                     children: [
                       Row(
                         children: [
-                          Text(
-                            statusTitle,
-                            style: AppTheme.d(
-                              12,
-                              weight: FontWeight.w800,
-                              color: isStale
-                                  ? Colors.redAccent
-                                  : isPaused
-                                  ? Colors.amber
-                                  : gc.accent,
-                              letterSpacing: 1.0,
+                          Flexible(
+                            child: Text(
+                              statusTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.d(
+                                11,
+                                weight: FontWeight.w800,
+                                color: isStale
+                                    ? Colors.redAccent
+                                    : isPaused
+                                    ? Colors.amber
+                                    : gc.accent,
+                                letterSpacing: 0.6,
+                              ),
                             ),
                           ),
                           if (workout.totalCompletedSets > 0) ...[
@@ -259,6 +263,7 @@ class _ActiveWorkoutHomeBannerState
                     ],
                   ),
                 ),
+                const SizedBox(width: 10),
                 // Action Buttons
                 Row(
                   mainAxisSize: MainAxisSize.min,

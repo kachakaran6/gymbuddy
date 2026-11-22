@@ -8,9 +8,11 @@ import 'core/router/app_router.dart';
 import 'data/database/database.dart';
 import 'data/repositories/repositories.dart';
 import 'domain/models/models.dart';
+import 'core/utils/legal_licenses.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  registerAppLicenses();
 
   // Android 15 Edge-To-Edge: transparent system bars with edge-to-edge layout
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

@@ -1,0 +1,5 @@
+• Streamlined Settings with enhanced privacy transparency and offline-first compliance.
+• Cleaned companion apps catalog with instant offline support.
+• Resolved workout status header layout and text overlap on the Home Screen.
+• Standardized open-source license registration in compliance with Google Play distribution policies.
+• Performance improvements, stability upgrades, and bug fixes.

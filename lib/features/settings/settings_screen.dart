@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/providers/app_providers.dart';
@@ -19,7 +18,6 @@ import '../../domain/models/models.dart';
 import '../../widgets/gym_widgets.dart';
 import 'notification_diagnostics_screen.dart';
 import 'storage_diagnostics_screen.dart';
-import 'legal_attribution_dialog.dart';
 import 'our_apps_screen.dart';
 import '../onboarding/how_to_use_dialog.dart';
 import '../onboarding/onboarding_screen.dart';
@@ -489,8 +487,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Divider(height: 1, thickness: 1, color: borderColor),
                   GymSettingsRow(
                     icon: Icons.file_download_outlined,
-                    title: 'Import from Strong / Hevy',
-                    subtitle: 'Import workout history from Strong or Hevy CSV',
+                    title: 'Import Workout CSV',
+                    subtitle: 'Import workout logs (compatible with Strong & Hevy CSV)',
                     onTap: () => _showUniversalCsvImportDialog(context, ref),
                   ),
                 ],
@@ -509,7 +507,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   GymSettingsRow(
                     icon: Icons.apps_rounded,
                     title: 'Our Apps',
-                    subtitle: 'Explore the centralized Samyukt application ecosystem',
+                    subtitle: 'Explore our companion applications',
                     trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
                     onTap: () {
                       Navigator.of(context).push(
@@ -563,60 +561,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
+                    onTap: () => showLicensePage(
+                      context: context,
+                      applicationName: 'GymBuddy',
+                      applicationVersion: versionDisplay,
+                    ),
                   ),
                   Divider(height: 1, thickness: 1, color: borderColor),
                   GymSettingsRow(
-                    icon: Icons.verified_user_outlined,
-                    title: 'Open Source Licenses & Attributions',
-                    subtitle: 'Creative Commons artwork & open source notices',
-                    onTap: () => LegalAttributionDialog.show(context),
+                    icon: Icons.privacy_tip_outlined,
+                    title: 'Privacy Policy',
+                    subtitle: '100% offline, zero data collection',
+                    onTap: () => _showPrivacyPolicyDialog(context),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // ── Samyukt Attribution ────────────────────────
-            Center(
-              child: InkWell(
-                onTap: () async {
-                  final uri = Uri.parse(AppConstants.samyuktWebsiteUrl);
-                  try {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  } catch (_) {}
-                },
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.favorite_rounded,
-                        size: 14,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        'Made with care by Samyukt',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurfaceVariant,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Icon(
-                        Icons.arrow_outward_rounded,
-                        size: 13,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ),
           ],
@@ -669,6 +627,141 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         side: BorderSide(color: borderColor, width: 1),
       ),
       child: child,
+    );
+  }
+
+  void _showPrivacyPolicyDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF161616) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.base),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.privacy_tip_outlined,
+                        color: theme.colorScheme.primary,
+                        size: 26,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'Privacy Policy',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'GymBuddy is built with a 100% offline-first, local privacy guarantee.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.base),
+                  _buildPrivacySection(
+                    context,
+                    title: '1. Zero Personal Data Collection',
+                    content:
+                        'We do not collect, track, transmit, or share your personal details, workouts, body metrics, or notes with any third parties or remote servers.',
+                  ),
+                  _buildPrivacySection(
+                    context,
+                    title: '2. 100% Local Device Storage',
+                    content:
+                        'All routines, exercise logs, PR records, and preferences are stored exclusively on your device using a secure local database.',
+                  ),
+                  _buildPrivacySection(
+                    context,
+                    title: '3. Data Ownership & Portability',
+                    content:
+                        'You own all your fitness data. You can export complete backups to JSON or CSV at any time, or permanently delete everything from the Settings menu.',
+                  ),
+                  _buildPrivacySection(
+                    context,
+                    title: '4. Device Permissions',
+                    content:
+                        'Notification and alarm permissions are requested solely to alert you when workout rest timers end and to trigger your scheduled workout reminders.',
+                  ),
+                  const SizedBox(height: AppSpacing.base),
+                  FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
+                    child: const Text('Close'),
+                  ),
+                  const SizedBox(height: AppSpacing.base),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPrivacySection(
+    BuildContext context, {
+    required String title,
+    required String content,
+  }) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            content,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

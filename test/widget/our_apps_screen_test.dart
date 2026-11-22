@@ -58,7 +58,6 @@ void main() {
 
       // Verify Screen Header and App Names
       expect(find.text('Our Apps'), findsOneWidget);
-      expect(find.text('Samyukt Ecosystem'), findsOneWidget);
       expect(find.text('Vault X'), findsOneWidget);
       expect(find.text('GymBuddy - Track Your Body'), findsOneWidget);
 
@@ -72,16 +71,6 @@ void main() {
 
       // Verify Current App marker
       expect(find.text('This App'), findsOneWidget);
-
-      // Scroll to bottom to reveal Standardized Samyukt Attribution
-      await tester.scrollUntilVisible(
-        find.text('Made with care by Samyukt'),
-        200,
-        scrollable: find.byType(Scrollable),
-      );
-
-      // Verify Standardized Samyukt Attribution
-      expect(find.text('Made with care by Samyukt'), findsOneWidget);
     });
 
     testWidgets('Displays cached indicator when data is loaded from offline cache',
